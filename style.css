@@ -1,0 +1,34 @@
+@font-face {
+  font-family: "HAL Timezone Mono";
+  src: url("HALTimezoneTest-MonoRegular.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "TimesDotRom";
+  src: url("TimesDotRom.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+#world {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  cursor: default;
+  touch-action: none;
+}

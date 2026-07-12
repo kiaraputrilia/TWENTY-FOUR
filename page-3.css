@@ -1,0 +1,120 @@
+@font-face {
+  font-family: "TimesDotRom";
+  src: url("TimesDotRom.otf") format("opentype");
+}
+
+
+* {
+  box-sizing: border-box;
+}
+
+
+html,
+body {
+  margin: 0;
+
+  width: 100%;
+  min-height: 100%;
+
+  overflow: hidden;
+
+  background: #ffffff;
+}
+
+
+body {
+  cursor: default;
+}
+
+
+#memoryField {
+  position: fixed;
+
+  inset: 0;
+
+  width: 100vw;
+  height: 100vh;
+
+  overflow: hidden;
+
+  touch-action: none;
+}
+
+
+/* =======================================
+   TEXT FRAGMENTS
+======================================= */
+
+.memory-text {
+  position: absolute;
+
+  width: min(420px, 70vw);
+
+  font-family: "TimesDotRom", serif;
+
+  font-size: 24px;
+  line-height: 0.95;
+
+  color: #000000;
+
+  pointer-events: none;
+
+  animation: appear 0.6s ease forwards;
+}
+
+
+/* =======================================
+   IMAGE FRAGMENTS
+======================================= */
+
+.memory-image {
+  position: absolute;
+
+  width: 240px;
+  height: auto;
+
+  pointer-events: none;
+
+  animation: appear 0.6s ease forwards;
+}
+
+
+/* =======================================
+   APPEAR
+======================================= */
+
+@keyframes appear {
+
+  from {
+    opacity: 0;
+    transform:
+      scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform:
+      scale(1);
+  }
+
+}
+
+
+/* =======================================
+   MOBILE
+======================================= */
+
+@media (max-width: 600px) {
+
+  .memory-text {
+    width: 75vw;
+
+    font-size: 20px;
+  }
+
+
+  .memory-image {
+    width: 180px;
+  }
+
+}
