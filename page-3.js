@@ -1,51 +1,12 @@
 // =======================================
-// YOUR CONTENT
+// 8 ENTRIES
 // =======================================
 
-// Paste your first quotation here:
-
-const TEXT_ONE =
-  `PASTE YOUR FIRST QUOTE HERE`;
-
-
-// Image:
-
-const IMAGE =
-  "IMG-1.jpg";
-
-
-// Paste your second quotation here:
-
-const TEXT_TWO =
-  `PASTE YOUR SECOND QUOTE HERE`;
-
-
-// =======================================
-// SETTINGS
-// =======================================
-
-// Lower number = fragments appear more often
-
-const SPAWN_DISTANCE = 180;
-
-
-// =======================================
-// ELEMENTS
-// =======================================
-
-const memoryField =
-  document.getElementById("memoryField");
-
-
-// =======================================
-// CONTENT ORDER
-// =======================================
-
-const memories = [
+const entries = [
 
   {
     type: "text",
-    content: "Even now, after all these years, I cannot describe the torrent that swept through me in that moment. I only remember standing, transfixed, before a portrait of a woman wearing a fur coat."
+    content: "'Even now, after all these years, I cannot describe the torrent that swept through me in that moment. I only remember standing, transfixed, before a portrait of a woman wearing a fur coat.'"
   },
 
   {
@@ -55,237 +16,149 @@ const memories = [
 
   {
     type: "text",
-    content: "I had known that woman since I'd opened my first book at the age of seven - since I'd started, at the age of five, to dream. I saw in her echoes of Halit Ziya Uşaklıgil's Nihal, Vecihi Bey's Mehcure, and Cavalier Buridan's beloved. I saw the Cleopatra I had come to know in history books, and Muhammad's mother, Amine Hatun, of whom I had dreamed while listening to the Mevlit prayers.'"
+    content: "'I had known that woman since I'd opened my first book at the age of seven — since I'd started, at the age of five, to dream. I saw in her echoes of Halit Ziya Uşaklıgil's Nihal, Vecihi Bey's Mehcure, and Cavalier Buridan's beloved. I saw the Cleopatra I had come to know in history books, and Muhammad's mother, Amine Hatun, of whom I had dreamed while listening to the Mevlit prayers.'"
+  },
+
+  {
+    type: "image",
+    content: "IMG-3.jpg"
+  },
+
+  {
+    type: "text",
+    content: "'To be consumed, body and soul, by desire is quite another. That’s what love is to me — desire that’s all-consuming. Desire that’s impossible to resist!'"
+  },
+
+  {
+    type: "image",
+    content: `IMG-4.jpg`
+  },
+
+  {
+    type: "text",
+    content: "'Just as warm sunlight can, by passing through a lens, turn to fire, so too can love. It’s wrong to see it as something that swoops in from outside. It’s because it arises from the feelings we carry inside us that it strikes us with such violence, at the moment we least expect.'"
+  },
+
+  {
+    type: "image",
+    content: `IMG-5.jpg`
   }
 
 ];
 
 
-let memoryIndex = 0;
+// =======================================
+// ELEMENTS
+// =======================================
 
-let previousX = null;
-let previousY = null;
+const memoryField =
+  document.getElementById("memoryField");
+
+let currentEntry = 0;
 
 
 // =======================================
-// CREATE MEMORY
+// SHOW ENTRY
 // =======================================
 
-function createMemory(x, y) {
+function showEntry(x, y) {
 
-  const memory =
-    memories[
-      memoryIndex %
-      memories.length
-    ];
+  // After all 8 entries have appeared,
+  // the next click clears the page
+  // and resets the sequence.
 
+  if (currentEntry >= entries.length) {
+
+    memoryField.innerHTML = "";
+
+    currentEntry = 0;
+
+    return;
+  }
+
+
+  const entry =
+    entries[currentEntry];
 
   let element;
 
 
-  // ---------------------------------------
-  // TEXT
-  // ---------------------------------------
+  // =====================================
+  // CREATE TEXT
+  // =====================================
 
-  if (
-    memory.type === "text"
-  ) {
+  if (entry.type === "text") {
 
     element =
       document.createElement("div");
 
-
     element.className =
       "memory-text";
 
-
     element.textContent =
-      memory.content;
+      entry.content;
 
   }
 
 
-  // ---------------------------------------
-  // IMAGE
-  // ---------------------------------------
+  // =====================================
+  // CREATE IMAGE
+  // =====================================
 
-  if (
-    memory.type === "image"
-  ) {
+  if (entry.type === "image") {
 
     element =
       document.createElement("img");
 
-
     element.className =
       "memory-image";
 
-
     element.src =
-      memory.content;
+      entry.content;
 
   }
 
 
-  // =======================================
+  // =====================================
   // POSITION
-  // =======================================
+  // =====================================
 
-  const randomX =
-    (Math.random() - 0.5) * 100;
-
-
-  const randomY =
-    (Math.random() - 0.5) * 100;
-
+  // The exact point you click becomes
+  // the TOP-LEFT corner of the element.
 
   element.style.left =
-    `${x + randomX}px`;
-
+    `${x}px`;
 
   element.style.top =
-    `${y + randomY}px`;
+    `${y}px`;
 
 
-  // Slight random rotation
-
-  const rotation =
-    (Math.random() - 0.5) * 8;
-
-
-  element.style.rotate =
-    `${rotation}deg`;
-
+  // Add the element to the page
 
   memoryField.appendChild(
     element
   );
 
 
-  memoryIndex++;
+  // Move to the next entry
+
+  currentEntry++;
 
 }
 
 
 // =======================================
-// TRACK MOVEMENT
-// =======================================
-
-function handleMovement(x, y) {
-
-  // First movement
-
-  if (
-    previousX === null ||
-    previousY === null
-  ) {
-
-    previousX = x;
-    previousY = y;
-
-    createMemory(x, y);
-
-    return;
-  }
-
-
-  const dx =
-    x - previousX;
-
-
-  const dy =
-    y - previousY;
-
-
-  const distance =
-    Math.sqrt(
-      dx * dx +
-      dy * dy
-    );
-
-
-  // Only create a new fragment
-  // after travelling enough distance
-
-  if (
-    distance >= SPAWN_DISTANCE
-  ) {
-
-    createMemory(x, y);
-
-
-    previousX = x;
-    previousY = y;
-
-  }
-
-}
-
-
-// =======================================
-// DESKTOP
+// CLICK / TAP
 // =======================================
 
 memoryField.addEventListener(
-  "mousemove",
+  "pointerdown",
   event => {
 
-    handleMovement(
+    showEntry(
       event.clientX,
       event.clientY
     );
 
-  }
-);
-
-
-// =======================================
-// MOBILE
-// =======================================
-
-memoryField.addEventListener(
-  "touchstart",
-  event => {
-
-    event.preventDefault();
-
-
-    const touch =
-      event.touches[0];
-
-
-    handleMovement(
-      touch.clientX,
-      touch.clientY
-    );
-
-  },
-
-  {
-    passive: false
-  }
-);
-
-
-memoryField.addEventListener(
-  "touchmove",
-  event => {
-
-    event.preventDefault();
-
-
-    const touch =
-      event.touches[0];
-
-
-    handleMovement(
-      touch.clientX,
-      touch.clientY
-    );
-
-  },
-
-  {
-    passive: false
   }
 );
