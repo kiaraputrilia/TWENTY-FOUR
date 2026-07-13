@@ -89,3 +89,9 @@ body {
   }
 
 }
+
+#armsLink {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
