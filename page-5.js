@@ -1,7 +1,7 @@
-// =======================================
-// MAGNETIC SENTENCE
+// ======================================
 // PAGE 5
-// =======================================
+// LIVING RIBBON
+// ======================================
 
 const SENTENCE =
 `And then, I looked around and life didn’t feel so serious anymore. The truth is, I would do anything for you, but you would never ask me to. And that is the most selfless and most gentle love I have the gift of receiving.`;
@@ -10,176 +10,157 @@ const playground =
 document.getElementById("playground");
 
 
-// =======================================
+// ======================================
 // SETTINGS
-// =======================================
+// ======================================
 
-// How close each word wants to stay
-// to the previous word
+const WORD_SIZE =
+window.innerWidth < 600
+? 15
+: 18;
 
-const WORD_SPACING = 38;
+// distance between collected words
 
+const SEGMENT_DISTANCE = 34;
 
-// Pull of cursor on FIRST word
+// how close cursor must be
+// to collect next word
 
-const CURSOR_FORCE = 0.00035;
+const ACTIVATE_RADIUS = 55;
 
+// movement
 
-// Pull between neighbouring words
+const HEAD_EASE = 0.05;
+const FOLLOW_EASE = 0.08;
+const RETURN_EASE = 0.025;
 
-const CHAIN_FORCE = 0.015;
+// breathing
 
-
-// Slow everything down
-
-const FRICTION = 0.90;
-
-
-// Tiny breathing movement
-
-const JITTER = 0.02;
-
-
-// Cursor influence
-
-const CURSOR_RADIUS = 220;
+const JITTER_AMOUNT = 0.25;
+const JITTER_SPEED = 0.0015;
 
 
-// =======================================
+// ======================================
 // POINTER
-// =======================================
+// ======================================
 
 const pointer = {
 
-    x: window.innerWidth / 2,
-
-    y: window.innerHeight / 2,
-
-    active: false
+    x:window.innerWidth/2,
+    y:window.innerHeight/2
 
 };
 
 
-// =======================================
-// POINTER EVENTS
-// =======================================
+// invisible leader
 
-function updatePointer(x,y){
+const head = {
 
-    pointer.x = x;
-    pointer.y = y;
+    x:pointer.x,
+    y:pointer.y
 
-    pointer.active = true;
-
-}
+};
 
 
-window.addEventListener("mousemove",(e)=>{
+window.addEventListener("mousemove",e=>{
 
-    updatePointer(
-        e.clientX,
-        e.clientY
-    );
+    pointer.x=e.clientX;
+    pointer.y=e.clientY;
 
 });
 
 
-window.addEventListener(
+window.addEventListener("touchstart",e=>{
 
-    "touchstart",
+    pointer.x=e.touches[0].clientX;
+    pointer.y=e.touches[0].clientY;
 
-    e=>{
-
-        const t =
-        e.touches[0];
-
-        updatePointer(
-            t.clientX,
-            t.clientY
-        );
-
-    },
-
-    {passive:true}
-
-);
+},{passive:true});
 
 
-window.addEventListener(
+window.addEventListener("touchmove",e=>{
 
-    "touchmove",
+    pointer.x=e.touches[0].clientX;
+    pointer.y=e.touches[0].clientY;
 
-    e=>{
-
-        const t =
-        e.touches[0];
-
-        updatePointer(
-            t.clientX,
-            t.clientY
-        );
-
-    },
-
-    {passive:true}
-
-);
+},{passive:true});
 
 
-// =======================================
-// CREATE WORD OBJECTS
-// =======================================
+// ======================================
+// WORDS
+// ======================================
 
 const words =
 SENTENCE.split(/\s+/);
 
-const objects = [];
+const objects=[];
 
 
-words.forEach(word=>{
+// highest collected word
+
+let collected = -1;
+
+
+// ======================================
+// CREATE HTML
+// ======================================
+
+words.forEach((text,index)=>{
 
     const div =
     document.createElement("div");
 
     div.className = "word";
 
-    div.textContent = word;
+    div.textContent = text;
 
     playground.appendChild(div);
 
 
+    // random position
+
+    const homeX =
+    Math.random()*
+    (window.innerWidth-240)+20;
+
+    const homeY =
+    Math.random()*
+    (window.innerHeight-180)+40;
+
+
     objects.push({
 
-        element: div,
+        index,
 
-        text: word,
+        text,
 
-        // Random starting position
+        element:div,
 
-        x:
-        Math.random() *
-        (window.innerWidth - 200),
+        homeX,
+        homeY,
 
-        y:
-        Math.random() *
-        (window.innerHeight - 200),
+        x:homeX,
+        y:homeY,
 
-        vx:
-        (Math.random()-0.5) * 0.3,
+        targetX:homeX,
+        targetY:homeY,
 
-        vy:
-        (Math.random()-0.5) * 0.3
+        angle:
+        Math.random()*
+        Math.PI*2,
+
+        collected:false
 
     });
 
 });
 
 
-// =======================================
-// POSITION WORDS
-// =======================================
+// ======================================
+// DRAW
+// ======================================
 
-function drawWords(){
+function draw(){
 
     objects.forEach(word=>{
 
@@ -193,123 +174,201 @@ function drawWords(){
 
 }
 
-drawWords();
+draw();
 
-// =======================================
+
+// ======================================
+// COLLECT NEXT WORD
+// ======================================
+
+function collectWords(){
+
+    const next =
+    collected + 1;
+
+    if(next >= objects.length){
+
+        return;
+
+    }
+
+    const word =
+    objects[next];
+
+    const dx =
+    pointer.x - word.x;
+
+    const dy =
+    pointer.y - word.y;
+
+    const distance =
+    Math.sqrt(
+        dx*dx +
+        dy*dy
+    );
+
+    if(distance < ACTIVATE_RADIUS){
+
+        word.collected = true;
+
+        collected++;
+
+    }
+
+}
+
+// ======================================
 // ANIMATION
-// =======================================
+// ======================================
+
+let time = 0;
 
 function animate() {
 
-    // -----------------------------------
-    // FIRST WORD FOLLOWS CURSOR
-    // -----------------------------------
+    time += JITTER_SPEED;
 
-    const first = objects[0];
+    // ----------------------------------
+    // Smooth invisible head
+    // ----------------------------------
 
-    if (pointer.active) {
+    head.x += (pointer.x - head.x) * HEAD_EASE;
+    head.y += (pointer.y - head.y) * HEAD_EASE;
 
-        const dx = pointer.x - first.x;
-        const dy = pointer.y - first.y;
+    // ----------------------------------
+    // Check if we've collected
+    // the next word
+    // ----------------------------------
 
-        const distance = Math.sqrt(dx * dx + dy * dy);
+    collectWords();
 
-        if (distance < CURSOR_RADIUS) {
+    // ----------------------------------
+    // Move every word
+    // ----------------------------------
 
-            first.vx += dx * CURSOR_FORCE;
-            first.vy += dy * CURSOR_FORCE;
+    objects.forEach((word, index) => {
 
-        }
+        // ==============================
+        // NOT COLLECTED
+        // ==============================
 
-    }
+        if (!word.collected) {
 
+            word.angle += JITTER_SPEED;
 
-    // -----------------------------------
-    // EVERY OTHER WORD FOLLOWS
-    // THE PREVIOUS WORD
-    // -----------------------------------
+            const breatheX =
+                Math.cos(word.angle) *
+                JITTER_AMOUNT;
 
-    for (let i = 1; i < objects.length; i++) {
+            const breatheY =
+                Math.sin(word.angle) *
+                JITTER_AMOUNT;
 
-        const previous = objects[i - 1];
-        const current = objects[i];
+            word.targetX =
+                word.homeX + breatheX;
 
-        const dx = previous.x - current.x;
-        const dy = previous.y - current.y;
-
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance > 0) {
-
-            // desired spacing
-
-            const stretch =
-                distance - WORD_SPACING;
-
-            current.vx +=
-                (dx / distance) *
-                stretch *
-                CHAIN_FORCE;
-
-            current.vy +=
-                (dy / distance) *
-                stretch *
-                CHAIN_FORCE;
+            word.targetY =
+                word.homeY + breatheY;
 
         }
 
-    }
+        // ==============================
+        // FIRST COLLECTED WORD
+        // ==============================
 
+        else if (index === 0) {
 
-    // -----------------------------------
-    // UPDATE ALL WORDS
-    // -----------------------------------
+            // stay slightly behind
+            // the cursor
 
-    objects.forEach(word => {
+            const dx =
+                pointer.x - head.x;
 
-        // friction
+            const dy =
+                pointer.y - head.y;
 
-        word.vx *= FRICTION;
-        word.vy *= FRICTION;
+            const angle =
+                Math.atan2(dy, dx);
 
+            word.targetX =
+                head.x -
+                Math.cos(angle) * 40;
 
-        // tiny breathing
+            word.targetY =
+                head.y -
+                Math.sin(angle) * 40;
 
-        word.vx +=
-            (Math.random() - 0.5) *
-            JITTER;
+        }
 
-        word.vy +=
-            (Math.random() - 0.5) *
-            JITTER;
+        // ==============================
+        // FOLLOW PREVIOUS COLLECTED WORD
+        // ==============================
 
+        else {
 
-        word.x += word.vx;
-        word.y += word.vy;
+            const previous =
+                objects[index - 1];
 
+            if (previous.collected) {
 
-        // keep on screen
+                const dx =
+                    previous.x - word.x;
 
-        word.x = Math.max(
-            0,
-            Math.min(
-                window.innerWidth - 120,
-                word.x
-            )
-        );
+                const dy =
+                    previous.y - word.y;
 
-        word.y = Math.max(
-            0,
-            Math.min(
-                window.innerHeight - 40,
-                word.y
-            )
-        );
+                const angle =
+                    Math.atan2(dy, dx);
+
+                word.targetX =
+                    previous.x -
+                    Math.cos(angle) *
+                    SEGMENT_DISTANCE;
+
+                word.targetY =
+                    previous.y -
+                    Math.sin(angle) *
+                    SEGMENT_DISTANCE;
+
+            }
+
+            else {
+
+                word.angle += JITTER_SPEED;
+
+                word.targetX =
+                    word.homeX +
+                    Math.cos(word.angle) *
+                    JITTER_AMOUNT;
+
+                word.targetY =
+                    word.homeY +
+                    Math.sin(word.angle) *
+                    JITTER_AMOUNT;
+
+            }
+
+        }
+
+        // ==============================
+        // Smooth interpolation
+        // ==============================
+
+        const ease =
+            word.collected
+                ? FOLLOW_EASE
+                : RETURN_EASE;
+
+        word.x +=
+            (word.targetX - word.x) *
+            ease;
+
+        word.y +=
+            (word.targetY - word.y) *
+            ease;
 
     });
 
-
-    drawWords();
+    draw();
 
     requestAnimationFrame(
         animate
@@ -319,16 +378,47 @@ function animate() {
 
 animate();
 
-
-// =======================================
+// ======================================
 // RESIZE
-// =======================================
+// ======================================
 
-window.addEventListener(
-    "resize",
-    () => {
+window.addEventListener("resize", () => {
 
-        location.reload();
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
-    }
-);
+    pointer.x = width / 2;
+    pointer.y = height / 2;
+
+    head.x = pointer.x;
+    head.y = pointer.y;
+
+    objects.forEach(word => {
+
+        // keep words inside screen
+
+        word.homeX = Math.min(
+            Math.max(word.homeX, 20),
+            width - 120
+        );
+
+        word.homeY = Math.min(
+            Math.max(word.homeY, 40),
+            height - 40
+        );
+
+        // if the word hasn't been collected,
+        // move it to its new home
+
+        if (!word.collected) {
+
+            word.x = word.homeX;
+            word.y = word.homeY;
+
+        }
+
+    });
+
+    draw();
+
+});
