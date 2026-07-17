@@ -26,11 +26,11 @@ const SEGMENT_DISTANCE = 34;
 // how close cursor must be
 // to collect next word
 
-const ACTIVATE_RADIUS = 55;
+const ACTIVATE_RADIUS = 100;
 
 // movement
 
-const HEAD_EASE = 0.05;
+const HEAD_EASE = 0.10;
 const FOLLOW_EASE = 0.08;
 const RETURN_EASE = 0.025;
 
@@ -195,11 +195,8 @@ function collectWords(){
     const word =
     objects[next];
 
-    const dx =
-    pointer.x - word.x;
-
-    const dy =
-    pointer.y - word.y;
+    const dx = pointer.x - word.homeX;
+    const dy = pointer.y - word.homeY;
 
     const distance =
     Math.sqrt(
