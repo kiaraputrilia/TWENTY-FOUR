@@ -480,7 +480,7 @@ text(
     height / 2 - 90
 );
 
-textSize(23);
+textSize(20);
 
 text(
     "A YEAR AROUND THE SUN TOGETHER",
