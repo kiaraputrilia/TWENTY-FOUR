@@ -33,8 +33,8 @@ resizeCanvas();
 // ==============================
 
 
-bottomImg.src = "IMG-6.png"; // COLOR IMAGE
-topImg.src = "IMG-7.png";    // BLACK & WHITE IMAGE
+bottomImg.src = "IMG-9.JPG"; // COLOR IMAGE
+topImg.src = "IMG-10.png";    // BLACK & WHITE IMAGE
 
 
 
