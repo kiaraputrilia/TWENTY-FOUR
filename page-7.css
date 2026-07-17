@@ -1,0 +1,76 @@
+/* =======================================
+   CLICKABLE CAPTION
+======================================= */
+
+
+#caption {
+
+  position: fixed;
+
+  top: 24px;
+  left: 24px;
+
+
+  width: min(50vw, 700px);
+
+
+  z-index: 9999;
+
+
+  font-family: "TimesDotRom", serif;
+
+  font-size: 36px;
+
+  line-height: 0.9;
+
+
+  color: black;
+
+
+  text-decoration: none;
+
+
+  pointer-events: auto;
+
+  cursor: pointer;
+
+}
+
+@media (max-width:600px){
+
+
+  #caption {
+
+    top:16px;
+    left:16px;
+
+    width: calc(100vw - 32px);
+
+    font-size:34px;
+
+  }
+
+
+}
+
+#revealCanvas {
+
+  position: fixed;
+
+  top: 0;
+  left: 0;
+
+  width: 100vw;
+  height: 100vh;
+
+  display: block;
+
+  z-index: 1;
+
+  touch-action: none;
+
+
+  /* CUSTOM PAINTBRUSH CURSOR */
+  cursor: url("IMG-8.png") 20 20, auto;
+
+}
