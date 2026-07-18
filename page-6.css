@@ -8,6 +8,11 @@
     src: url("HALTimezoneTest-MonoRegular.otf") format("opentype");
 }
 
+@font-face {
+    font-family: "AlteHaasGrotesk";
+    src: url("AlteHaasGroteskRegular.ttf") format("truetype");
+}
+
 *{
     margin:0;
     padding:0;
@@ -28,6 +33,34 @@ body{
 
 
 /* ===========================
+   LABEL
+=========================== */
+
+#gameLabel{
+
+    position:fixed;
+
+    top:24px;
+    left:24px;
+
+    width:min(50vw,700px);
+
+    z-index:100;
+
+    font-family:"AlteHaasGrotesk", sans-serif;
+
+    font-size:12px;
+
+    letter-spacing:0.08em;
+
+    text-transform:uppercase;
+
+    color:#000;
+
+}
+
+
+/* ===========================
    CAPTION
 =========================== */
 
@@ -35,7 +68,7 @@ body{
 
     position:fixed;
 
-    top:24px;
+    top:60px;
     left:24px;
 
     width:min(50vw,700px);
@@ -139,9 +172,20 @@ canvas{
 
 @media (max-width:600px){
 
-    #caption{
+    #gameLabel{
 
         top:16px;
+        left:16px;
+
+        width:calc(100vw - 32px);
+
+        font-size:11px;
+
+    }
+
+    #caption{
+
+        top:48px;
         left:16px;
 
         width:calc(100vw - 32px);

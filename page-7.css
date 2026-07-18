@@ -1,3 +1,36 @@
+@font-face {
+  font-family: "AlteHaasGrotesk";
+  src: url("AlteHaasGroteskRegular.ttf") format("truetype");
+}
+
+
+/* =======================================
+   LABEL
+======================================= */
+
+#paintLabel {
+
+  position: fixed;
+
+  top: 24px;
+  left: 24px;
+
+  width: min(50vw, 700px);
+
+  z-index: 9999;
+
+  font-family: "AlteHaasGrotesk", sans-serif;
+
+  font-size: 12px;
+
+  letter-spacing: 0.08em;
+
+  text-transform: uppercase;
+
+  color: #000;
+
+}
+
 /* =======================================
    CLICKABLE CAPTION
 ======================================= */
@@ -7,7 +40,7 @@
 
   position: fixed;
 
-  top: 24px;
+  top: 60px;
   left: 24px;
 
 
@@ -38,10 +71,20 @@
 
 @media (max-width:600px){
 
+  #paintLabel {
+
+    top: 16px;
+    left: 16px;
+
+    width: calc(100vw - 32px);
+
+    font-size: 11px;
+
+  }
 
   #caption {
 
-    top:16px;
+    top: 48px;
     left:16px;
 
     width: calc(100vw - 32px);
@@ -49,7 +92,6 @@
     font-size:34px;
 
   }
-
 
 }
 
