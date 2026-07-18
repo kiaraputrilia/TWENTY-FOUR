@@ -1,0 +1,85 @@
+@font-face {
+  font-family: "TimesDotRom";
+  src: url("TimesDotRom.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "AlteHaasGrotesk";
+  src: url("AlteHaasGroteskRegular.ttf") format("truetype");
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  background: white;
+}
+
+#poemCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  display: block;
+  touch-action: none;
+}
+
+#content {
+  position: relative;
+  z-index: 2;
+  width: min(50vw, 700px);
+  margin-left: 24px;
+  padding-top: 24px;
+  padding-bottom: 60px;
+
+  /* let hover/touch pass through to the canvas underneath */
+  pointer-events: none;
+}
+
+#credit {
+  font-family: "AlteHaasGrotesk", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #000;
+  margin-bottom: 40px;
+}
+
+.poem-group {
+  margin-bottom: 48px;
+}
+
+.label {
+  font-family: "AlteHaasGrotesk", sans-serif;
+  font-size: 14px;
+  color: #000;
+  margin-bottom: 16px;
+}
+
+.poem {
+  visibility: hidden;
+  font-family: "TimesDotRom", serif;
+  font-size: 36px;
+  line-height: 0.9;
+}
+
+@media (max-width: 600px) {
+
+  #content {
+    width: calc(100vw - 32px);
+    margin-left: 16px;
+  }
+
+  .poem {
+    font-size: 34px;
+  }
+
+  #credit, .label {
+    font-size: 11px;
+  }
+
+}
