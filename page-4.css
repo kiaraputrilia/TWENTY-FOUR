@@ -3,6 +3,11 @@
   src: url("TimesDotRom.otf") format("opentype");
 }
 
+@font-face {
+  font-family: "Alte Haas Grotesk";
+  src: url("AlteHaasGroteskRegular.ttf") format("truetype");
+}
+
 * {
   box-sizing: border-box;
 }
@@ -20,13 +25,37 @@ body {
 
 
 /* =======================================
+   LABEL — TOP LEFT
+======================================= */
+
+#pageLabel {
+  position: fixed;
+
+  top: 24px;
+  left: 24px;
+
+  width: min(50vw, 700px);
+
+  z-index: 1000;
+
+  font-family: "Alte Haas Grotesk", sans-serif;
+  font-size: 12px;
+
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  color: #000;
+}
+
+
+/* =======================================
    TEXT — TOP LEFT
 ======================================= */
 
 #caption {
   position: fixed;
 
-  top: 24px;
+  top: 60px;
   left: 24px;
 
   width: min(50vw, 700px);
@@ -63,14 +92,40 @@ body {
 }
 
 
+.songLabel {
+  font-family: "Alte Haas Grotesk", sans-serif;
+  font-size: 12px;
+
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  color: #000;
+
+  margin-top: 8px;
+}
+
+.songLabel:first-child {
+  margin-top: 0;
+}
+
+
 /* =======================================
    MOBILE
 ======================================= */
 
 @media (max-width: 600px) {
 
-  #caption {
+  #pageLabel {
     top: 16px;
+    left: 16px;
+
+    width: calc(100vw - 32px);
+
+    font-size: 11px;
+  }
+
+  #caption {
+    top: 48px;
     left: 16px;
 
     width: calc(100vw - 32px);
@@ -86,6 +141,10 @@ body {
     width: calc(100vw - 32px);
 
     gap: 6px;
+  }
+
+  .songLabel {
+    font-size: 11px;
   }
 
 }
