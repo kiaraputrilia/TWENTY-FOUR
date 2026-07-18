@@ -39,6 +39,34 @@ body {
 
 
 /* =======================================
+   LABEL
+======================================= */
+
+#pageLabel {
+
+    position: fixed;
+
+    top: 24px;
+    left: 24px;
+
+    width: min(55vw, 760px);
+
+    z-index: 1000;
+
+    font-family: "Alte Haas Grotesk", sans-serif;
+
+    font-size: 12px;
+
+    letter-spacing: 0.08em;
+
+    text-transform: uppercase;
+
+    color: #000;
+
+}
+
+
+/* =======================================
    TOP CAPTION
 ======================================= */
 
@@ -46,7 +74,7 @@ body {
 
     position: fixed;
 
-    top: 24px;
+    top: 60px;
     left: 24px;
 
     width: min(55vw, 760px);
@@ -168,9 +196,20 @@ body {
 
 @media (max-width:600px){
 
-    #caption{
+    #pageLabel{
 
         top:16px;
+        left:16px;
+
+        width:calc(100vw - 32px);
+
+        font-size:11px;
+
+    }
+
+    #caption{
+
+        top:48px;
         left:16px;
 
         width:calc(100vw - 32px);
