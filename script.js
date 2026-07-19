@@ -35,7 +35,7 @@ const CAPTION_DEFAULT =
   "Like The Pull of The Earth Beneath my Feet";
 
 const CAPTION_FOUND =
-  "One Chance Encounter and I am Cruelly Awake";
+  "Your Love Grounds Me";
 
 
 // =======================================

@@ -12,7 +12,7 @@ const entries = [
   {
     type: "image",
     content: "IMG-1.jpg",
-    caption: "TITLE FOR IMG-1"
+    caption: "Hellelil and Hildebrand, The Meeting on the Turret Stairs (1864) by Irish artist Frederic William Burton"
   },
 
   {
@@ -23,7 +23,7 @@ const entries = [
   {
     type: "image",
     content: "IMG-3.jpg",
-    caption: "TITLE FOR IMG-3"
+    caption: "The Kiss / Le Baiser (1882) by French sculptorAuguste Rodin"
   },
 
   {
@@ -34,7 +34,7 @@ const entries = [
   {
     type: "image",
     content: `IMG-4.jpg`,
-    caption: "TITLE FOR IMG-4"
+    caption: "Psyche Revived by Cupid's Kiss / Amore e Psiche (1787–1793) by Italian sculptor Antonio Canova"
   },
 
   {
@@ -45,7 +45,7 @@ const entries = [
   {
     type: "image",
     content: `IMG-5.jpg`,
-    caption: "TITLE FOR IMG-5"
+    caption: "The Bed / Le Lit (1892) by French painter Henri de Toulouse-Lautrec"
   }
 
 ];
