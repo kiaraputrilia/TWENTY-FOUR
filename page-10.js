@@ -10,9 +10,9 @@ const bgVideoSource = document.getElementById("bgVideoSource");
 // list your 5 video filenames here, in the order they should cycle
 const videoSources = [
     "VIDEO-1.mov",
-    "VIDEO-2.mov",
-    "VIDEO-3.mp4",
-    "VIDEO-4.mov",
+    "VIDEO-2.MOV",
+    "VIDEO-3.MP4",
+    "VIDEO-4.MOV",
     "VIDEO-5.mov"
 ];
 
