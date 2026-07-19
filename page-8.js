@@ -8,14 +8,24 @@ const ctx = canvas.getContext("2d");
 const poemGroups = document.querySelectorAll(".poem-group");
 
 let letters = [];
+let words = []; // word-level bounding boxes, for clickable words
 
 const REVEAL_RADIUS = 50;
+
+// the word (case-insensitive, punctuation-stripped) that should be clickable
+const LINK_WORD = "silent";
+const LINK_HREF = "page-9.html";
 
 let pointer = {
     x: -9999,
     y: -9999,
     active: false
 };
+
+// used to tell a genuine tap/click apart from a drag,
+// so hovering to reveal letters doesn't accidentally trigger the link
+let pointerDownPos = null;
+const CLICK_MOVE_THRESHOLD = 6;
 
 
 function getFontSize() {
@@ -40,6 +50,7 @@ function resizeCanvas() {
 function buildLetters() {
 
     letters = [];
+    words = [];
 
     const fontSize = getFontSize();
 
@@ -55,8 +66,6 @@ function buildLetters() {
         const poemEl = group.querySelector(".poem");
         const poemRect = poemEl.getBoundingClientRect();
 
-        // anchor each stanza to wherever its (invisible) poem
-        // block actually lands in the page layout
         const groupStartX = poemRect.left - canvasRect.left;
         const groupStartY = poemRect.top - canvasRect.top;
         const maxWidth = poemRect.width;
@@ -124,6 +133,10 @@ function buildLetters() {
                         y += lineHeight;
                     }
 
+                    // track this word's bounding box before laying out its letters
+                    const wordStartX = x;
+                    const wordStartY = y;
+
                     for (let i = 0; i < token.length; i++) {
 
                         const char = token[i];
@@ -145,6 +158,19 @@ function buildLetters() {
                         });
 
                         x += width;
+                    }
+
+                    // strip punctuation, compare case-insensitively
+                    const cleanWord = token.replace(/[^A-Za-z]/g, "").toLowerCase();
+
+                    if (cleanWord === LINK_WORD) {
+                        words.push({
+                            minX: wordStartX,
+                            maxX: x,
+                            minY: wordStartY,
+                            maxY: wordStartY + fontSize,
+                            href: LINK_HREF
+                        });
                     }
 
                 }
@@ -191,6 +217,20 @@ function drawLetters() {
 
 
 // ======================================
+// WORD HIT-TESTING
+// ======================================
+
+function getWordAt(x, y) {
+
+    return words.find(w =>
+        x >= w.minX && x <= w.maxX &&
+        y >= w.minY && y <= w.maxY
+    );
+
+}
+
+
+// ======================================
 // POINTER INTERACTION
 // ======================================
 
@@ -203,32 +243,70 @@ function getPointerPos(e) {
 }
 
 canvas.addEventListener("pointermove", (e) => {
+
     const pos = getPointerPos(e);
     pointer.x = pos.x;
     pointer.y = pos.y;
     pointer.active = true;
     drawLetters();
+
+    // show a pointer cursor when hovering the clickable word
+    canvas.style.cursor = getWordAt(pos.x, pos.y) ? "pointer" : "default";
+
 });
 
 canvas.addEventListener("pointerdown", (e) => {
+
     const pos = getPointerPos(e);
     pointer.x = pos.x;
     pointer.y = pos.y;
     pointer.active = true;
+
+    // remember where the press started, to distinguish a tap from a drag
+    pointerDownPos = pos;
+
     drawLetters();
+
 });
 
-canvas.addEventListener("pointerup", () => {
+canvas.addEventListener("pointerup", (e) => {
+
+    const pos = getPointerPos(e);
+
+    // only treat this as a "click" if the pointer barely moved
+    if (pointerDownPos) {
+
+        const dx = pos.x - pointerDownPos.x;
+        const dy = pos.y - pointerDownPos.y;
+        const moved = Math.sqrt(dx * dx + dy * dy);
+
+        if (moved < CLICK_MOVE_THRESHOLD) {
+
+            const word = getWordAt(pos.x, pos.y);
+
+            if (word) {
+                window.location.href = word.href;
+                return;
+            }
+
+        }
+
+    }
+
+    pointerDownPos = null;
     pointer.active = false;
     drawLetters();
+
 });
 
 canvas.addEventListener("pointercancel", () => {
+    pointerDownPos = null;
     pointer.active = false;
     drawLetters();
 });
 
 canvas.addEventListener("pointerleave", () => {
+    pointerDownPos = null;
     pointer.active = false;
     drawLetters();
 });

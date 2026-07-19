@@ -1,19 +1,12 @@
 @font-face {
   font-family: "TimesDotRom";
   src: url("TimesDotRom.otf") format("opentype");
-  font-weight: normal;
-  font-style: normal;
 }
 
 @font-face {
   font-family: "Alte Haas Grotesk";
   src: url("AlteHaasGroteskRegular.ttf") format("truetype");
 }
-
-
-/* =======================================
-   GLOBAL
-======================================= */
 
 * {
   box-sizing: border-box;
@@ -29,15 +22,15 @@ body {
 
   overflow: hidden;
 
-  background: #ffffff;
+  background: #002FA7;
 }
 
 
 /* =======================================
-   VIDEO — BOTTOM LAYER
+   WATER CANVAS
 ======================================= */
 
-#backgroundVideo {
+#waterCanvas {
   position: fixed;
 
   top: 0;
@@ -45,43 +38,22 @@ body {
 
   width: 100vw;
   height: 100vh;
-
-  object-fit: cover;
-  object-position: center;
-
-  z-index: 1;
-
-  /* Video should NOT intercept clicks */
-  pointer-events: none;
-}
-
-
-/* =======================================
-   WHITE REVEAL CANVAS — MIDDLE LAYER
-======================================= */
-
-#revealCanvas {
-  position: fixed;
-
-  top: 0;
-  left: 0;
-
-  width: 100vw;
-  height: 100vh;
-
-  z-index: 2;
 
   display: block;
 
+  z-index: 1;
+
   touch-action: none;
+
+  cursor: pointer;
 }
 
 
 /* =======================================
-   LABEL — TOP LAYER
+   TEXT BLOCK
 ======================================= */
 
-#pageLabel {
+#textBlock {
   position: fixed;
 
   top: 24px;
@@ -89,45 +61,42 @@ body {
 
   width: min(50vw, 700px);
 
-  z-index: 9999;
+  z-index: 1000;
 
+  pointer-events: none;
+}
+
+#pageLabel {
   font-family: "Alte Haas Grotesk", sans-serif;
   font-size: 12px;
 
   letter-spacing: 0.08em;
   text-transform: uppercase;
 
-  color: #000000;
+  color: #ffffff;
 }
 
-
-/* =======================================
-   CLICKABLE CAPTION — TOP LAYER
-======================================= */
-
 #caption {
-  position: fixed;
-
-  top: 60px;
-  left: 24px;
-
-  width: min(50vw, 700px);
-
-  /* Always above the canvas */
-  z-index: 9999;
+  margin-top: 12px;
 
   font-family: "TimesDotRom", serif;
   font-size: 36px;
   line-height: 0.9;
 
-  color: #000000;
+  color: #ffffff;
+}
 
-  /* Remove default link styling */
-  text-decoration: none;
+#captionDescription {
+  margin-top: 12px;
 
-  /* Make the link clickable */
-  pointer-events: auto;
-  cursor: pointer;
+  font-family: "Alte Haas Grotesk", sans-serif;
+  font-size: 12px;
+
+  letter-spacing: 0.04em;
+
+  color: #ffffff;
+
+  /* opacity: 0.75; */
 }
 
 
@@ -137,22 +106,23 @@ body {
 
 @media (max-width: 600px) {
 
-  #pageLabel {
+  #textBlock {
     top: 16px;
     left: 16px;
 
     width: calc(100vw - 32px);
+  }
 
+  #pageLabel {
     font-size: 11px;
   }
 
   #caption {
-    top: 48px;
-    left: 16px;
-
-    width: calc(100vw - 32px);
-
     font-size: 34px;
+  }
+
+  #captionDescription {
+    font-size: 11px;
   }
 
 }

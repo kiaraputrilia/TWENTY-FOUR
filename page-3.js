@@ -11,7 +11,8 @@ const entries = [
 
   {
     type: "image",
-    content: "IMG-1.jpg"
+    content: "IMG-1.jpg",
+    caption: "TITLE FOR IMG-1"
   },
 
   {
@@ -21,7 +22,8 @@ const entries = [
 
   {
     type: "image",
-    content: "IMG-3.jpg"
+    content: "IMG-3.jpg",
+    caption: "TITLE FOR IMG-3"
   },
 
   {
@@ -31,7 +33,8 @@ const entries = [
 
   {
     type: "image",
-    content: `IMG-4.jpg`
+    content: `IMG-4.jpg`,
+    caption: "TITLE FOR IMG-4"
   },
 
   {
@@ -41,7 +44,8 @@ const entries = [
 
   {
     type: "image",
-    content: `IMG-5.jpg`
+    content: `IMG-5.jpg`,
+    caption: "TITLE FOR IMG-5"
   }
 
 ];
@@ -62,10 +66,6 @@ let currentEntry = 0;
 // =======================================
 
 function showEntry(x, y) {
-
-  // After all 8 entries have appeared,
-  // the next click clears the page
-  // and resets the sequence.
 
   if (currentEntry >= entries.length) {
 
@@ -95,26 +95,54 @@ function showEntry(x, y) {
     element.className =
       "memory-text";
 
-    element.textContent =
+    const span =
+      document.createElement("span");
+
+    span.textContent =
       entry.content;
+
+    element.appendChild(span);
 
   }
 
 
   // =====================================
-  // CREATE IMAGE
+  // CREATE IMAGE (+ caption)
   // =====================================
 
   if (entry.type === "image") {
 
     element =
-      document.createElement("img");
+      document.createElement("div");
 
     element.className =
+      "memory-image-wrapper";
+
+    const img =
+      document.createElement("img");
+
+    img.className =
       "memory-image";
 
-    element.src =
+    img.src =
       entry.content;
+
+    element.appendChild(img);
+
+    if (entry.caption) {
+
+      const caption =
+        document.createElement("div");
+
+      caption.className =
+        "memory-caption";
+
+      caption.textContent =
+        entry.caption;
+
+      element.appendChild(caption);
+
+    }
 
   }
 
@@ -123,9 +151,6 @@ function showEntry(x, y) {
   // POSITION
   // =====================================
 
-  // The exact point you click becomes
-  // the TOP-LEFT corner of the element.
-
   element.style.left =
     `${x}px`;
 
@@ -133,14 +158,10 @@ function showEntry(x, y) {
     `${y}px`;
 
 
-  // Add the element to the page
-
   memoryField.appendChild(
     element
   );
 
-
-  // Move to the next entry
 
   currentEntry++;
 

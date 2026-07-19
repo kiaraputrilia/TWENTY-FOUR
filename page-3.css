@@ -23,13 +23,38 @@ body {
 
 
 /* =======================================
+   LABEL
+======================================= */
+
+#pageLabel {
+  position: fixed;
+
+  top: 24px;
+  left: 24px;
+
+  width: min(50vw, 700px);
+
+  z-index: 9999;
+
+  font-family: "Alte Haas Grotesk", sans-serif;
+  font-size: 12px;
+
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  color: #000000;
+  text-decoration: none;
+}
+
+
+/* =======================================
    CLICKABLE TOP-LEFT TEXT
 ======================================= */
 
 #pageLink {
   position: fixed;
 
-  top: 24px;
+  top: 60px;
   left: 24px;
 
   width: min(50vw, 700px);
@@ -69,6 +94,10 @@ body {
    APPEARING TEXT ENTRIES
 ======================================= */
 
+/* =======================================
+   APPEARING TEXT ENTRIES
+======================================= */
+
 .memory-text {
   position: absolute;
 
@@ -76,25 +105,51 @@ body {
 
   font-family: "Alte Haas Grotesk", sans-serif;
   font-size: 18px;
-  line-height: 1;
-
-  color: #000000;
+  line-height: 1.15;
 
   pointer-events: none;
 }
 
+.memory-text span {
+  background: #000000;
+  color: #ffffff;
+
+  padding: 2px 4px;
+
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
 
 /* =======================================
-   APPEARING IMAGES
+   APPEARING IMAGES (+ caption wrapper)
 ======================================= */
 
-.memory-image {
+.memory-image-wrapper {
   position: absolute;
 
   width: min(300px, 65vw);
-  height: auto;
 
   pointer-events: none;
+}
+
+.memory-image {
+  display: block;
+
+  width: 100%;
+  height: auto;
+}
+
+.memory-caption {
+  text-align: left;
+
+  font-family: "Alte Haas Grotesk", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+
+  color: #000000;
+
+  margin-top: 4px;
 }
 
 
@@ -104,8 +159,17 @@ body {
 
 @media (max-width: 600px) {
 
-  #pageLink {
+  #pageLabel {
     top: 16px;
+    left: 16px;
+
+    width: calc(100vw - 32px);
+
+    font-size: 11px;
+  }
+
+  #pageLink {
+    top: 48px;
     left: 16px;
 
     width: calc(100vw - 32px);
@@ -113,12 +177,16 @@ body {
     font-size: 34px;
   }
 
-  .memory-text {
+ .memory-text {
     width: 75vw;
     font-size: 16px;
   }
 
-  .memory-image {
+  .memory-image-wrapper {
     width: 60vw;
+  }
+
+  .memory-caption {
+    font-size: 11px;
   }
 }
