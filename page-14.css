@@ -8,183 +8,88 @@
   src: url("AlteHaasGroteskRegular.ttf") format("truetype");
 }
 
-/* =======================================
-   RESET
-======================================= */
-
 * {
   box-sizing: border-box;
 }
 
-html,
-body {
+html, body {
   margin: 0;
   padding: 0;
-
   width: 100%;
   height: 100%;
-
   overflow: hidden;
-
-  background: #ffffff;
+  background: #002FA7;
 }
 
 /* =======================================
-   LETTER STORM LAYER
-======================================= */
+   WATER CANVAS
+   ======================================= */
 
-#stormLayer {
+#waterCanvas {
   position: fixed;
-
-  inset: 0;
-
-  width: 100vw;
-  height: 100vh;
-
-  overflow: hidden;
-
-  pointer-events: none;
-
-  z-index: 10;
-}
-
-/* Every flying letter */
-
-.letter {
-  position: fixed;
-
   top: 0;
   left: 0;
-
-  font-family: "TimesDotRom", serif;
-  font-size: 36px;
-  line-height: 0.9;
-
-  color: #002FA7;
-
-  white-space: pre;
-
-  will-change: transform;
-
-  user-select: none;
-  pointer-events: none;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  z-index: 1;
+  touch-action: none;
+  cursor: pointer;
 }
 
 /* =======================================
    TEXT BLOCK
-======================================= */
+   ======================================= */
 
 #textBlock {
   position: fixed;
-
   top: 24px;
   left: 24px;
-
   width: min(50vw, 700px);
-
-  z-index: 100;
-
+  z-index: 1000;
   pointer-events: none;
 }
-
-/* =======================================
-   SMALL LABEL
-======================================= */
 
 #pageLabel {
   font-family: "Alte Haas Grotesk", sans-serif;
   font-size: 12px;
-
   letter-spacing: 0.08em;
   text-transform: uppercase;
-
-  color: #002FA7;
+  color: #ffffff;
 }
 
-/* =======================================
-   POEM
-======================================= */
-
-#poemContainer {
+#caption {
   margin-top: 12px;
-
   font-family: "TimesDotRom", serif;
   font-size: 36px;
   line-height: 0.9;
-
-  color: #002FA7;
-
-  user-select: none;
+  color: #ffffff;
 }
 
-/* Individual lines */
-
-.line {
-  position: relative;
-}
-
-/* The original text is hidden.
-   JS measures it first, then replaces
-   it with the animated letters. */
-
-.line {
-  visibility: hidden;
-}
-
-/* =======================================
-   CREDIT
-======================================= */
-
-#credit {
+#captionDescription {
   margin-top: 12px;
-
   font-family: "Alte Haas Grotesk", sans-serif;
   font-size: 12px;
-
   letter-spacing: 0.04em;
-
-  color: #002FA7;
+  color: #ffffff;
+  /* opacity: 0.75; */
 }
 
-/* =======================================
-   HOLD INSTRUCTION
-======================================= */
-
-#instruction {
-  position: fixed;
-
-  bottom: 24px;
-  right: 24px;
-
-  font-family: "Alte Haas Grotesk", sans-serif;
-  font-size: 12px;
-
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-
-  color: #002FA7;
-
-  opacity: .45;
-
-  transition: opacity .3s ease;
-
-  z-index: 100;
-}
-
-body:active #instruction {
-  opacity: 1;
+#rememberLink {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 /* =======================================
    MOBILE
-======================================= */
+   ======================================= */
 
 @media (max-width: 600px) {
-
   #textBlock {
     top: 16px;
     left: 16px;
-
     width: calc(100vw - 32px);
   }
 
@@ -192,23 +97,11 @@ body:active #instruction {
     font-size: 11px;
   }
 
-  #poemContainer {
+  #caption {
     font-size: 34px;
   }
 
-  .letter {
-    font-size: 34px;
-  }
-
-  #credit {
+  #captionDescription {
     font-size: 11px;
   }
-
-  #instruction {
-    right: 16px;
-    bottom: 16px;
-
-    font-size: 11px;
-  }
-
 }

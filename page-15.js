@@ -1,143 +1,251 @@
-// =======================================================
-// PAGE 15
-// PART 1 - BUILD LETTERS
-// =======================================================
+(() => {
+  "use strict";
 
-const poem = document.getElementById("poemContainer");
-const stormLayer = document.getElementById("stormLayer");
+  const canvas = document.getElementById("letterCanvas");
+  const ctx = canvas.getContext("2d");
+  const holdHint = document.getElementById("holdHint");
 
-const letters = [];
+  const POEM_LINES = [
+    "To think about you is blue, like wandering",
+    "through a golden forest in the middle of the day:",
+    "gardens are born from my words",
+    "and with my clouds, I walk through your dreams."
+  ];
 
-// -------------------------------------------------------
-// Create spans for every character
-// -------------------------------------------------------
+  const INK = "#002FA7";
 
-function buildPoem() {
+  // Tunables ---------------------------------------------------------
+  const HOLD_DURATION_MS = 4200;   // how long a continuous hold takes to fully calm the storm
+  const RELEASE_DECAY_PER_MS = 0.00035; // how fast the calm drains once you let go
+  const LOCK_HOLD_MS = 700;        // must stay fully calm this long before it locks permanently
+  const LINE_HEIGHT_RATIO = 0.98;
 
-    const lines = [...poem.querySelectorAll(".line")];
+  let W = 0, H = 0, DPR = 1;
+  let fontSize = 36;
+  let font = "";
+  let letters = [];
+  let calm = 0;            // 0 = full storm, 1 = fully settled
+  let holdStart = null;
+  let fullyCalmSince = null;
+  let settled = false;
+  let hintHidden = false;
+  let fontsReady = false;
 
-    lines.forEach(line => {
+  // ------------------------------------------------------------------
+  // Setup
+  // ------------------------------------------------------------------
 
-        const text = line.textContent;
+  function computeFontSize() {
+    if (W < 600) return Math.max(18, Math.min(26, W * 0.058));
+    return Math.max(26, Math.min(46, W * 0.032));
+  }
 
-        line.textContent = "";
+  function resize() {
+    DPR = window.devicePixelRatio || 1;
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * DPR;
+    canvas.height = H * DPR;
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
-        [...text].forEach(char => {
+    fontSize = computeFontSize();
+    font = `${fontSize}px TimesDotRom, serif`;
+    layoutTargets();
+    if (settled) {
+      letters.forEach(L => { L.x = L.targetX; L.y = L.targetY; });
+    }
+  }
 
-            const span = document.createElement("span");
+  function buildLetters() {
+    letters = [];
+    POEM_LINES.forEach((line, li) => {
+      [...line].forEach(ch => {
+        letters.push({ char: ch, line: li, seed: Math.random() * 1000 });
+      });
+    });
+  }
 
-            span.className = "measure";
+  function layoutTargets() {
+    ctx.font = font;
 
-            span.textContent =
-                char === " "
-                    ? "\u00A0"
-                    : char;
-
-            line.appendChild(span);
-
-        });
-
+    const maxAllowedWidth = Math.min(W * 0.86, 1100);
+    let widest = 0;
+    const lineWidths = POEM_LINES.map(l => {
+      const w = ctx.measureText(l).width;
+      if (w > widest) widest = w;
+      return w;
     });
 
-}
+    if (widest > maxAllowedWidth) {
+      const scale = maxAllowedWidth / widest;
+      fontSize = Math.max(14, fontSize * scale);
+      font = `${fontSize}px TimesDotRom, serif`;
+      ctx.font = font;
+      widest = 0;
+      for (let i = 0; i < POEM_LINES.length; i++) {
+        lineWidths[i] = ctx.measureText(POEM_LINES[i]).width;
+        if (lineWidths[i] > widest) widest = lineWidths[i];
+      }
+    }
 
-// -------------------------------------------------------
-// Measure every letter
-// -------------------------------------------------------
+    const lineHeight = fontSize * LINE_HEIGHT_RATIO;
+    const blockHeight = POEM_LINES.length * lineHeight;
+    const blockY = H / 2 - blockHeight / 2 + fontSize * 0.78;
 
-function measureLetters() {
-
-    const measuredLetters =
-        poem.querySelectorAll(".measure");
-
-    measuredLetters.forEach(span => {
-
-        const rect =
-            span.getBoundingClientRect();
-
-        letters.push({
-
-            char: span.textContent,
-
-            targetX:
-                rect.left + rect.width / 2,
-
-            targetY:
-                rect.top + rect.height / 2,
-
-            x:
-                Math.random() * window.innerWidth,
-
-            y:
-                Math.random() * window.innerHeight,
-
-            vx: 0,
-            vy: 0,
-
-            arrived: false,
-
-            element: null
-
-        });
-
+    let idx = 0;
+    POEM_LINES.forEach((line, li) => {
+      const lineW = lineWidths[li];
+      let cx = (W - lineW) / 2;
+      const cy = blockY + li * lineHeight;
+      [...line].forEach(ch => {
+        const w = ctx.measureText(ch).width;
+        letters[idx].targetX = cx + w / 2;
+        letters[idx].targetY = cy;
+        idx++;
+        cx += w;
+      });
     });
+  }
 
-}
-
-// -------------------------------------------------------
-// Create flying copies
-// -------------------------------------------------------
-
-function createStormLetters() {
-
-    letters.forEach(letter => {
-
-        const el =
-            document.createElement("span");
-
-        el.className = "letter";
-
-        el.textContent = letter.char;
-
-        el.style.transform =
-            `translate(${letter.x}px, ${letter.y}px)`;
-
-        stormLayer.appendChild(el);
-
-        letter.element = el;
-
+  function scatterLetters() {
+    letters.forEach(L => {
+      L.x = Math.random() * W;
+      L.y = Math.random() * H;
+      L.vx = (Math.random() - 0.5) * 3;
+      L.vy = (Math.random() - 0.5) * 3;
+      L.angle = Math.random() * Math.PI * 2;
     });
+  }
 
-}
+  // ------------------------------------------------------------------
+  // Interaction
+  // ------------------------------------------------------------------
 
-// -------------------------------------------------------
-// Hide original poem
-// -------------------------------------------------------
+  function beginHold() {
+    if (settled) return;
+    holdStart = performance.now();
+    if (!hintHidden) {
+      hintHidden = true;
+      holdHint.classList.add("hidden");
+    }
+  }
 
-function hideOriginalPoem() {
+  function endHold() {
+    holdStart = null;
+    fullyCalmSince = null;
+  }
 
-    poem.style.visibility = "hidden";
+  canvas.addEventListener("mousedown", beginHold);
+  canvas.addEventListener("touchstart", beginHold, { passive: true });
+  window.addEventListener("mouseup", endHold);
+  window.addEventListener("touchend", endHold);
+  window.addEventListener("touchcancel", endHold);
+  window.addEventListener("blur", endHold);
 
-}
+  // ------------------------------------------------------------------
+  // Animation
+  // ------------------------------------------------------------------
 
-// -------------------------------------------------------
-// Build everything
-// -------------------------------------------------------
+  let last = performance.now();
 
-buildPoem();
+  function tick(now) {
+    const dt = Math.min(now - last, 48);
+    last = now;
 
-requestAnimationFrame(() => {
+    if (!settled) {
+      if (holdStart !== null) {
+        const held = now - holdStart;
+        calm = Math.min(1, held / HOLD_DURATION_MS);
+        if (calm >= 1) {
+          if (fullyCalmSince === null) fullyCalmSince = now;
+          if (now - fullyCalmSince >= LOCK_HOLD_MS) settled = true;
+        } else {
+          fullyCalmSince = null;
+        }
+      } else {
+        calm = Math.max(0, calm - dt * RELEASE_DECAY_PER_MS);
+        fullyCalmSince = null;
+      }
+    }
 
-    measureLetters();
+    ctx.clearRect(0, 0, W, H);
+    ctx.font = font;
+    ctx.fillStyle = INK;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
 
-    createStormLetters();
+    const t = now * 0.001;
 
-    hideOriginalPoem();
+    for (let i = 0; i < letters.length; i++) {
+      const L = letters[i];
 
-    console.log(
-        "Letters created:",
-        letters.length
-    );
+      if (settled) {
+        L.x = L.targetX;
+        L.y = L.targetY;
+        L.angle = 0;
+      } else {
+        const turb = (1 - calm);
 
-});
+        // cheap pseudo-curl-noise turbulence field
+        const nx = Math.sin(L.y * 0.01 + t * 0.7 + L.seed) + Math.cos(L.x * 0.012 - t * 0.5 + L.seed * 0.3);
+        const ny = Math.cos(L.x * 0.011 - t * 0.6 + L.seed) + Math.sin(L.y * 0.013 + t * 0.4 + L.seed * 0.7);
 
+        L.vx += nx * turb * 0.55;
+        L.vy += ny * turb * 0.55;
+
+        // spring toward target grows sharply as calm approaches 1
+        const spring = calm * calm * 0.055;
+        L.vx += (L.targetX - L.x) * spring;
+        L.vy += (L.targetY - L.y) * spring;
+
+        const damp = 0.93 - calm * 0.18;
+        L.vx *= damp;
+        L.vy *= damp;
+
+        L.x += L.vx * (dt / 16);
+        L.y += L.vy * (dt / 16);
+
+        const m = 60;
+        if (L.x < -m) L.x = W + m;
+        if (L.x > W + m) L.x = -m;
+        if (L.y < -m) L.y = H + m;
+        if (L.y > H + m) L.y = -m;
+
+        L.angle = turb * Math.sin(t * 2.2 + L.seed) * 0.7;
+      }
+
+      if (L.char === " ") continue;
+
+      ctx.save();
+      ctx.translate(L.x, L.y);
+      ctx.rotate(L.angle);
+      ctx.fillText(L.char, 0, 0);
+      ctx.restore();
+    }
+
+    requestAnimationFrame(tick);
+  }
+
+  // ------------------------------------------------------------------
+  // Boot
+  // ------------------------------------------------------------------
+
+  buildLetters();
+  resize();
+  scatterLetters();
+  window.addEventListener("resize", resize);
+
+  const bootStorm = () => requestAnimationFrame(tick);
+
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      fontsReady = true;
+      resize(); // relayout targets now that TimesDotRom metrics are accurate
+      bootStorm();
+    }).catch(bootStorm);
+  } else {
+    bootStorm();
+  }
+})();

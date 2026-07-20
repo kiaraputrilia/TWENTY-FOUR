@@ -1,183 +1,127 @@
-/* ======================================
-   FONTS
-====================================== */
-
 @font-face {
-    font-family: "AlteHaas";
-    src: url("fonts/AlteHaasGroteskRegular.ttf");
+  font-family: "TimesDotRom";
+  src: url("TimesDotRom.otf") format("opentype");
 }
 
 @font-face {
-    font-family: "TimesDotRom";
-    src: url("fonts/TimesDotRom.otf");
+  font-family: "Alte Haas Grotesk";
+  src: url("AlteHaasGroteskRegular.ttf") format("truetype");
 }
 
-/* ======================================
-   RESET
-====================================== */
-
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
+* {
+  box-sizing: border-box;
 }
 
-html,
-body{
-
-    width:100%;
-    height:100%;
-    overflow:hidden;
-
-    background:#ffffff;
-
-    cursor:default;
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #abf5ed;
 }
 
-/* ======================================
-   CONTENT
-====================================== */
+/* =======================================
+   LETTER STORM CANVAS
+   ======================================= */
 
-#content{
-
-    width:100%;
-    height:100%;
-
-    position:relative;
-
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-
+#letterCanvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  z-index: 1;
+  touch-action: none;
+  cursor: pointer;
 }
 
-/* ======================================
-   SMALL LABEL
-====================================== */
+/* =======================================
+   TEXT BLOCK
+   ======================================= */
 
-#pageLabel{
-
-    position:absolute;
-
-    top:70px;
-    left:80px;
-
-    font-family:"TimesDotRom";
-    font-size:14px;
-    letter-spacing:0.15em;
-
-    color:black;
-
-    z-index:20;
-
+#textBlock {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  width: min(50vw, 700px);
+  z-index: 1000;
+  pointer-events: none;
 }
 
-/* ======================================
-   POEM
-====================================== */
-
-#poemContainer{
-
-    width:min(900px,85vw);
-
-    font-family:"AlteHaas";
-    font-size:54px;
-    line-height:1.15;
-
-    color:#002FA7;
-
-    user-select:none;
-
+#pageLabel {
+  font-family: "Alte Haas Grotesk", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #002FA7;
 }
 
-.line{
-
-    position:relative;
-
+#captionDescription {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  width: min(50vw, 700px);
+  z-index: 1000;
+  pointer-events: none;
+  font-family: "Alte Haas Grotesk", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: #002FA7;
+  opacity: 0.75;
 }
 
-/* ======================================
-   LETTERS
-====================================== */
+/* =======================================
+   HOLD HINT
+   ======================================= */
 
-.measure{
-    display:inline-block;
-    white-space:pre;
+#holdHint {
+  position: fixed;
+  left: 50%;
+  bottom: 32px;
+  transform: translateX(-50%);
+  z-index: 1000;
+  font-family: "Alte Haas Grotesk", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #002FA7;
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 1.2s ease;
 }
 
-.letter{
-
-    position:fixed;
-
-    left:0;
-    top:0;
-
-    font-family:"TimesDotRom", serif;
-    font-size:36px;
-    line-height:.9;
-
-    color:#002FA7;
-
-    white-space:pre;
-
-    pointer-events:none;
-    user-select:none;
-
-    will-change:transform;
-
+#holdHint.hidden {
+  opacity: 0;
 }
 
-/* ======================================
-   CREDIT
-====================================== */
+/* =======================================
+   MOBILE
+   ======================================= */
 
-#credit{
+@media (max-width: 600px) {
+  #textBlock {
+    top: 16px;
+    left: 16px;
+    width: calc(100vw - 32px);
+  }
 
-    position:absolute;
+  #pageLabel {
+    font-size: 11px;
+  }
 
-    bottom:65px;
-    right:80px;
+  #captionDescription {
+    bottom: 16px;
+    left: 16px;
+    width: calc(100vw - 32px);
+    font-size: 11px;
+  }
 
-    width:360px;
-
-    text-align:right;
-
-    font-family:"TimesDotRom";
-    font-size:13px;
-
-    letter-spacing:0.08em;
-
-    color:black;
-
-    line-height:1.4;
-
-}
-
-/* ======================================
-   INSTRUCTION
-====================================== */
-
-#instruction{
-
-    position:absolute;
-
-    bottom:65px;
-    left:80px;
-
-    font-family:"AlteHaas";
-    font-size:15px;
-
-    opacity:.35;
-
-    transition:.4s;
-
-    user-select:none;
-
-}
-
-body:active #instruction{
-
-    opacity:1;
-
+  #holdHint {
+    bottom: 56px;
+    font-size: 11px;
+    text-align: center;
+    width: calc(100vw - 32px);
+  }
 }
