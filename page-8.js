@@ -1,326 +1,270 @@
 // ======================================
-// PAGE 8
+// PAGE 8 — DRAG FOOD INTO THE BAG
+// Items snap anywhere inside the bag's interior zone,
+// not to fixed per-item positions
 // ======================================
 
-const canvas = document.getElementById("poemCanvas");
-const ctx = canvas.getContext("2d");
+const bagContainer = document.getElementById("bagContainer");
+const bagFront = document.getElementById("bagFront");
 
-const poemGroups = document.querySelectorAll(".poem-group");
-
-let letters = [];
-let words = []; // word-level bounding boxes, for clickable words
-
-const REVEAL_RADIUS = 50;
-
-// the word (case-insensitive, punctuation-stripped) that should be clickable
-const LINK_WORD = "silent";
-const LINK_HREF = "page-9.html";
-
-let pointer = {
-    x: -9999,
-    y: -9999,
-    active: false
+// bag's interior drop zone, as a percentage inset from
+// each edge of bagContainer — tune these four numbers to
+// match where the bag's actual opening/interior sits
+const ZONE_INSET = {
+    left: 10,
+    right: 10,
+    top: 12,
+    bottom: 6
 };
 
-// used to tell a genuine tap/click apart from a drag,
-// so hovering to reveal letters doesn't accidentally trigger the link
-let pointerDownPos = null;
-const CLICK_MOVE_THRESHOLD = 6;
+const ITEMS = [
+    { src: "SPAGHETTI.png",   widthVw: 45 },
+    { src: "TOMATO.png",      widthVw: 38 },
+    { src: "ONION.png",       widthVw: 45 },
+    { src: "GARLIC.png",      widthVw: 35 },
+    { src: "ASPARAGUS-1.png", widthVw: 40 },
+    { src: "ASPARAGUS-2.png", widthVw: 40 },
+    { src: "PETE-1.png",      widthVw: 35 },
+    { src: "PETE-2.png",      widthVw: 35 },
+    { src: "PETE-3.png",      widthVw: 35 }
+
+];
+
+let itemStates = [];
 
 
-function getFontSize() {
-    return window.innerWidth < 600 ? 34 : 36;
+// ======================================
+// ZONE HELPERS
+// ======================================
+
+function getZoneRect() {
+
+    const bagRect = bagContainer.getBoundingClientRect();
+
+    const left = bagRect.left + (ZONE_INSET.left / 100) * bagRect.width;
+    const right = bagRect.left + bagRect.width - (ZONE_INSET.right / 100) * bagRect.width;
+    const top = bagRect.top + (ZONE_INSET.top / 100) * bagRect.height;
+    const bottom = bagRect.top + bagRect.height - (ZONE_INSET.bottom / 100) * bagRect.height;
+
+    return { left, right, top, bottom, width: right - left, height: bottom - top };
+
 }
 
 
 // ======================================
-// CANVAS SIZE — covers the full scrollable page
+// BUILD ITEM ELEMENTS
 // ======================================
 
-function resizeCanvas() {
-    canvas.width = document.documentElement.scrollWidth;
-    canvas.height = document.documentElement.scrollHeight;
-}
+function createFoodItems() {
 
+    ITEMS.forEach((def) => {
 
-// ======================================
-// BUILD LETTER DATA
-// ======================================
+        const el = document.createElement("img");
+        el.src = def.src;
+        el.className = "foodItem";
+        el.style.width = def.widthVw + "vw";
+        el.draggable = false;
 
-function buildLetters() {
+        bagContainer.insertBefore(el, bagFront);
 
-    letters = [];
-    words = [];
+        const state = {
+            el: el,
+            placed: false,
 
-    const fontSize = getFontSize();
+            // for unplaced items: home position as % of viewport
+            homeXPercent: 0,
+            homeYPercent: 0,
 
-    ctx.font = `${fontSize}px TimesDotRom`;
-    ctx.textBaseline = "top";
+            // for placed items: position as % WITHIN the drop zone
+            // (0–100 relative to the zone's own box, not the bag)
+            placedZoneXPercent: 50,
+            placedZoneYPercent: 50,
 
-    const lineHeight = fontSize * 0.9;
+            dragging: false,
+            dragBagRect: null,
+            pointerOffsetX: 0,
+            pointerOffsetY: 0
+        };
 
-    const canvasRect = canvas.getBoundingClientRect();
-
-    poemGroups.forEach(group => {
-
-        const poemEl = group.querySelector(".poem");
-        const poemRect = poemEl.getBoundingClientRect();
-
-        const groupStartX = poemRect.left - canvasRect.left;
-        const groupStartY = poemRect.top - canvasRect.top;
-        const maxWidth = poemRect.width;
-
-        let y = groupStartY;
-
-        const lineEls = poemEl.querySelectorAll(".line");
-
-        lineEls.forEach(lineEl => {
-
-            let x = groupStartX;
-
-            const text = lineEl.textContent.trim();
-
-            let lettersOnly = [];
-            for (let char of text) {
-                if (/[A-Za-z]/.test(char)) lettersOnly.push(char);
-            }
-
-            let shuffled = [...lettersOnly];
-            for (let i = shuffled.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-            }
-
-            let index = 0;
-
-            const tokens = text.split(/(\s+)/);
-
-            tokens.forEach(token => {
-
-                if (token === "") return;
-
-                const isSpace = /^\s+$/.test(token);
-
-                if (isSpace) {
-
-                    if (x === groupStartX) return;
-
-                    for (let char of token) {
-                        const width = ctx.measureText(char).width;
-                        letters.push({
-                            correct: char,
-                            scrambled: char,
-                            x, y, width,
-                            centerX: x + width / 2,
-                            centerY: y + fontSize / 2
-                        });
-                        x += width;
-                    }
-
-                } else {
-
-                    let charWidths = [];
-                    let wordWidth = 0;
-
-                    for (let char of token) {
-                        const w = ctx.measureText(char).width;
-                        charWidths.push(w);
-                        wordWidth += w;
-                    }
-
-                    if (x + wordWidth > groupStartX + maxWidth && x > groupStartX) {
-                        x = groupStartX;
-                        y += lineHeight;
-                    }
-
-                    // track this word's bounding box before laying out its letters
-                    const wordStartX = x;
-                    const wordStartY = y;
-
-                    for (let i = 0; i < token.length; i++) {
-
-                        const char = token[i];
-                        const width = charWidths[i];
-
-                        let scrambled = char;
-
-                        if (/[A-Za-z]/.test(char)) {
-                            scrambled = shuffled[index];
-                            index++;
-                        }
-
-                        letters.push({
-                            correct: char,
-                            scrambled,
-                            x, y, width,
-                            centerX: x + width / 2,
-                            centerY: y + fontSize / 2
-                        });
-
-                        x += width;
-                    }
-
-                    // strip punctuation, compare case-insensitively
-                    const cleanWord = token.replace(/[^A-Za-z]/g, "").toLowerCase();
-
-                    if (cleanWord === LINK_WORD) {
-                        words.push({
-                            minX: wordStartX,
-                            maxX: x,
-                            minY: wordStartY,
-                            maxY: wordStartY + fontSize,
-                            href: LINK_HREF
-                        });
-                    }
-
-                }
-
-            });
-
-            y += lineHeight;
-
-        });
+        assignRandomHome(state);
+        itemStates.push(state);
+        attachDragHandlers(state);
 
     });
 
-}
-
-
-// ======================================
-// DRAW
-// ======================================
-
-function drawLetters() {
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = "#000";
-    ctx.font = `${getFontSize()}px TimesDotRom`;
-    ctx.textBaseline = "top";
-
-    letters.forEach(letter => {
-
-        let charToShow = letter.scrambled;
-
-        if (pointer.active) {
-            const dx = letter.centerX - pointer.x;
-            const dy = letter.centerY - pointer.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < REVEAL_RADIUS) charToShow = letter.correct;
-        }
-
-        ctx.fillText(charToShow, letter.x, letter.y);
-
-    });
+    layoutAll();
 
 }
 
 
 // ======================================
-// WORD HIT-TESTING
+// SCATTER LOOSE ITEMS, AVOIDING THE BAG
 // ======================================
 
-function getWordAt(x, y) {
+function assignRandomHome(state) {
 
-    return words.find(w =>
-        x >= w.minX && x <= w.maxX &&
-        y >= w.minY && y <= w.maxY
+    const bagRect = bagContainer.getBoundingClientRect();
+    const margin = 6;
+
+    const bagLeftPct = (bagRect.left / window.innerWidth) * 100 - margin;
+    const bagRightPct = ((bagRect.left + bagRect.width) / window.innerWidth) * 100 + margin;
+    const bagTopPct = (bagRect.top / window.innerHeight) * 100 - margin;
+    const bagBottomPct = ((bagRect.top + bagRect.height) / window.innerHeight) * 100 + margin;
+
+    let x, y, attempts = 0;
+
+    do {
+        x = 8 + Math.random() * 84;
+        y = 8 + Math.random() * 84;
+        attempts++;
+    } while (
+        x > bagLeftPct && x < bagRightPct &&
+        y > bagTopPct && y < bagBottomPct &&
+        attempts < 30
     );
 
+    state.homeXPercent = x;
+    state.homeYPercent = y;
+
 }
 
 
 // ======================================
-// POINTER INTERACTION
+// POSITIONING
 // ======================================
 
-function getPointerPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-    };
-}
+function layoutItem(state) {
 
-canvas.addEventListener("pointermove", (e) => {
+    if (state.dragging) return;
 
-    const pos = getPointerPos(e);
-    pointer.x = pos.x;
-    pointer.y = pos.y;
-    pointer.active = true;
-    drawLetters();
+    const bagRect = bagContainer.getBoundingClientRect();
+    const elRect = state.el.getBoundingClientRect();
+    const halfW = elRect.width / 2;
+    const halfH = elRect.height / 2;
 
-    // show a pointer cursor when hovering the clickable word
-    canvas.style.cursor = getWordAt(pos.x, pos.y) ? "pointer" : "default";
+    let viewportX, viewportY;
 
-});
+    if (state.placed) {
 
-canvas.addEventListener("pointerdown", (e) => {
+        const zone = getZoneRect();
 
-    const pos = getPointerPos(e);
-    pointer.x = pos.x;
-    pointer.y = pos.y;
-    pointer.active = true;
+        viewportX = zone.left + (state.placedZoneXPercent / 100) * zone.width;
+        viewportY = zone.top + (state.placedZoneYPercent / 100) * zone.height;
 
-    // remember where the press started, to distinguish a tap from a drag
-    pointerDownPos = pos;
+    } else {
 
-    drawLetters();
-
-});
-
-canvas.addEventListener("pointerup", (e) => {
-
-    const pos = getPointerPos(e);
-
-    // only treat this as a "click" if the pointer barely moved
-    if (pointerDownPos) {
-
-        const dx = pos.x - pointerDownPos.x;
-        const dy = pos.y - pointerDownPos.y;
-        const moved = Math.sqrt(dx * dx + dy * dy);
-
-        if (moved < CLICK_MOVE_THRESHOLD) {
-
-            const word = getWordAt(pos.x, pos.y);
-
-            if (word) {
-                window.location.href = word.href;
-                return;
-            }
-
-        }
+        viewportX = (state.homeXPercent / 100) * window.innerWidth;
+        viewportY = (state.homeYPercent / 100) * window.innerHeight;
 
     }
 
-    pointerDownPos = null;
-    pointer.active = false;
-    drawLetters();
+    const relLeft = (viewportX - halfW) - bagRect.left;
+    const relTop = (viewportY - halfH) - bagRect.top;
 
-});
+    state.el.style.left = relLeft + "px";
+    state.el.style.top = relTop + "px";
 
-canvas.addEventListener("pointercancel", () => {
-    pointerDownPos = null;
-    pointer.active = false;
-    drawLetters();
-});
-
-canvas.addEventListener("pointerleave", () => {
-    pointerDownPos = null;
-    pointer.active = false;
-    drawLetters();
-});
-
-
-// ======================================
-// START
-// ======================================
-
-function init() {
-    resizeCanvas();
-    buildLetters();
-    drawLetters();
 }
 
-window.addEventListener("load", init);
-window.addEventListener("resize", init);
+function layoutAll() {
+    itemStates.forEach(layoutItem);
+}
+
+
+// ======================================
+// DRAG HANDLERS
+// ======================================
+
+function attachDragHandlers(state) {
+
+    state.el.addEventListener("pointerdown", (e) => {
+
+        state.el.setPointerCapture(e.pointerId);
+
+        state.dragging = true;
+        state.el.classList.add("dragging");
+        state.dragBagRect = bagContainer.getBoundingClientRect();
+
+        const elRect = state.el.getBoundingClientRect();
+        state.pointerOffsetX = e.clientX - elRect.left;
+        state.pointerOffsetY = e.clientY - elRect.top;
+
+    });
+
+    state.el.addEventListener("pointermove", (e) => {
+
+        if (!state.dragging) return;
+
+        const viewportX = e.clientX - state.pointerOffsetX;
+        const viewportY = e.clientY - state.pointerOffsetY;
+
+        const relLeft = viewportX - state.dragBagRect.left;
+        const relTop = viewportY - state.dragBagRect.top;
+
+        state.el.style.left = relLeft + "px";
+        state.el.style.top = relTop + "px";
+
+    });
+
+    function endDrag() {
+
+        if (!state.dragging) return;
+
+        state.dragging = false;
+        state.el.classList.remove("dragging");
+
+        const elRect = state.el.getBoundingClientRect();
+        const centerX = elRect.left + elRect.width / 2;
+        const centerY = elRect.top + elRect.height / 2;
+
+        const zone = getZoneRect();
+
+        const inZone =
+            centerX >= zone.left && centerX <= zone.right &&
+            centerY >= zone.top && centerY <= zone.bottom;
+
+        if (inZone) {
+
+            state.placed = true;
+
+            // convert the drop point into a % position WITHIN the
+            // zone, clamped so the item doesn't hang past the zone
+            // edges (accounting for the item's own half-width/height
+            // in zone-relative percentage terms)
+            const halfWPercent = (elRect.width / 2 / zone.width) * 100;
+            const halfHPercent = (elRect.height / 2 / zone.height) * 100;
+
+            let xPercent = ((centerX - zone.left) / zone.width) * 100;
+            let yPercent = ((centerY - zone.top) / zone.height) * 100;
+
+            xPercent = Math.min(Math.max(xPercent, halfWPercent), 100 - halfWPercent);
+            yPercent = Math.min(Math.max(yPercent, halfHPercent), 100 - halfHPercent);
+
+            state.placedZoneXPercent = xPercent;
+            state.placedZoneYPercent = yPercent;
+
+        } else {
+
+            state.placed = false;
+
+        }
+
+        layoutItem(state);
+
+    }
+
+    state.el.addEventListener("pointerup", endDrag);
+    state.el.addEventListener("pointercancel", endDrag);
+
+}
+
+
+// ======================================
+// INIT
+// ======================================
+
+createFoodItems();
+
+window.addEventListener("resize", () => {
+    layoutAll();
+});
