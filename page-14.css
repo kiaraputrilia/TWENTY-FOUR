@@ -8,6 +8,10 @@
   src: url("AlteHaasGroteskRegular.ttf") format("truetype");
 }
 
+/* =======================================
+   RESET
+======================================= */
+
 * {
   box-sizing: border-box;
 }
@@ -22,32 +26,49 @@ body {
 
   overflow: hidden;
 
-  background: #002FA7;
+  background: #ffffff;
 }
 
-
 /* =======================================
-   WATER CANVAS
+   LETTER STORM LAYER
 ======================================= */
 
-#waterCanvas {
+#stormLayer {
+  position: fixed;
+
+  inset: 0;
+
+  width: 100vw;
+  height: 100vh;
+
+  overflow: hidden;
+
+  pointer-events: none;
+
+  z-index: 10;
+}
+
+/* Every flying letter */
+
+.letter {
   position: fixed;
 
   top: 0;
   left: 0;
 
-  width: 100vw;
-  height: 100vh;
+  font-family: "TimesDotRom", serif;
+  font-size: 36px;
+  line-height: 0.9;
 
-  display: block;
+  color: #002FA7;
 
-  z-index: 1;
+  white-space: pre;
 
-  touch-action: none;
+  will-change: transform;
 
-  cursor: pointer;
+  user-select: none;
+  pointer-events: none;
 }
-
 
 /* =======================================
    TEXT BLOCK
@@ -61,10 +82,14 @@ body {
 
   width: min(50vw, 700px);
 
-  z-index: 1000;
+  z-index: 100;
 
   pointer-events: none;
 }
+
+/* =======================================
+   SMALL LABEL
+======================================= */
 
 #pageLabel {
   font-family: "Alte Haas Grotesk", sans-serif;
@@ -73,20 +98,44 @@ body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 
-  color: #ffffff;
+  color: #002FA7;
 }
 
-#caption {
+/* =======================================
+   POEM
+======================================= */
+
+#poemContainer {
   margin-top: 12px;
 
   font-family: "TimesDotRom", serif;
   font-size: 36px;
   line-height: 0.9;
 
-  color: #ffffff;
+  color: #002FA7;
+
+  user-select: none;
 }
 
-#captionDescription {
+/* Individual lines */
+
+.line {
+  position: relative;
+}
+
+/* The original text is hidden.
+   JS measures it first, then replaces
+   it with the animated letters. */
+
+.line {
+  visibility: hidden;
+}
+
+/* =======================================
+   CREDIT
+======================================= */
+
+#credit {
   margin-top: 12px;
 
   font-family: "Alte Haas Grotesk", sans-serif;
@@ -94,19 +143,37 @@ body {
 
   letter-spacing: 0.04em;
 
-  color: #ffffff;
-
-  /* opacity: 0.75; */
+  color: #002FA7;
 }
 
-#rememberLink {
-  color: inherit;
-  text-decoration: none;
-  cursor: pointer;
-  pointer-events: auto;
+/* =======================================
+   HOLD INSTRUCTION
+======================================= */
+
+#instruction {
+  position: fixed;
+
+  bottom: 24px;
+  right: 24px;
+
+  font-family: "Alte Haas Grotesk", sans-serif;
+  font-size: 12px;
+
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  color: #002FA7;
+
+  opacity: .45;
+
+  transition: opacity .3s ease;
+
+  z-index: 100;
 }
 
-
+body:active #instruction {
+  opacity: 1;
+}
 
 /* =======================================
    MOBILE
@@ -125,11 +192,22 @@ body {
     font-size: 11px;
   }
 
-  #caption {
+  #poemContainer {
     font-size: 34px;
   }
 
-  #captionDescription {
+  .letter {
+    font-size: 34px;
+  }
+
+  #credit {
+    font-size: 11px;
+  }
+
+  #instruction {
+    right: 16px;
+    bottom: 16px;
+
     font-size: 11px;
   }
 
