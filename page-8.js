@@ -27,8 +27,28 @@ const ITEMS = [
     { src: "PETE-1.png",      widthVw: 35 },
     { src: "PETE-2.png",      widthVw: 35 },
     { src: "PETE-3.png",      widthVw: 35 }
-
 ];
+
+// on phones, vw is based on a much narrower screen, so the same
+// widthVw value renders far smaller in px than on desktop —
+// this multiplier compensates so food reads at a similar
+// visual size relative to the (now bottom-anchored, larger) bag
+const MOBILE_SIZE_MULTIPLIER = 1.6;
+const MOBILE_EXTRA_PX = 25;
+
+function isMobile() {
+    return window.innerWidth < 600;
+}
+
+function getItemWidthValue(baseWidthVw) {
+
+    if (isMobile()) {
+        return `calc(${baseWidthVw * MOBILE_SIZE_MULTIPLIER}vw + ${MOBILE_EXTRA_PX}px)`;
+    }
+
+    return `${baseWidthVw}vw`;
+
+}
 
 let itemStates = [];
 
@@ -62,7 +82,7 @@ function createFoodItems() {
         const el = document.createElement("img");
         el.src = def.src;
         el.className = "foodItem";
-        el.style.width = def.widthVw + "vw";
+        el.style.width = getItemWidthValue(def.widthVw);
         el.draggable = false;
 
         bagContainer.insertBefore(el, bagFront);
@@ -266,5 +286,11 @@ function attachDragHandlers(state) {
 createFoodItems();
 
 window.addEventListener("resize", () => {
+
+  itemStates.forEach((state, index) => {
+        state.el.style.width = getItemWidthValue(ITEMS[index].widthVw);
+    });
+
     layoutAll();
+
 });

@@ -153,8 +153,14 @@ html, body {
     font-size: 34px;
   }
 
-   #bagContainer {
-    width: min(96vw, 850px);
+ #bagContainer {
+    top: auto;
+    bottom: 16px;
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    width: calc(min(96vw, 850px) + 100px);
   }
 
 }

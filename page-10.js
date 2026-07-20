@@ -14,7 +14,7 @@ const REVEAL_RADIUS = 50;
 
 // the word (case-insensitive, punctuation-stripped) that should be clickable
 const LINK_WORD = "silent";
-const LINK_HREF = "page-9.html";
+const LINK_HREF = "page-11.html";
 
 let pointer = {
     x: -9999,
