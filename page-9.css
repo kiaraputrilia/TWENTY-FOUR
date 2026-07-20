@@ -1,0 +1,182 @@
+@font-face {
+  font-family: "TimesDotRom";
+  src: url("TimesDotRom.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "Alte Haas Grotesk";
+  src: url("AlteHaasGroteskRegular.ttf") format("truetype");
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+
+  width: 100%;
+
+  background: #ffffff;
+}
+
+
+/* =======================================
+   CONTENT WRAPPER
+======================================= */
+
+#content {
+  width: min(50vw, 700px);
+
+  margin-left: 24px;
+
+  padding-top: 24px;
+  padding-bottom: 60px;
+}
+
+
+/* =======================================
+   LABEL
+======================================= */
+
+#pageLabel {
+  font-family: "Alte Haas Grotesk", sans-serif;
+  font-size: 12px;
+
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  color: #000000;
+
+  margin-bottom: 16px;
+}
+
+
+/* =======================================
+   AUDIO PLAYER
+======================================= */
+
+#songPlayer {
+  width: 100%;
+
+  margin-bottom: 32px;
+}
+
+
+/* =======================================
+   CAPTION / LYRICS
+======================================= */
+
+#caption {
+  font-family: "TimesDotRom", serif;
+  font-size: 36px;
+  line-height: 1.25;
+
+  color: #000000;
+}
+
+.line {
+  margin-bottom: 2px;
+}
+
+.line.spacer {
+  height: 24px;
+  margin-bottom: 0;
+}
+
+
+/* =======================================
+   WORD CHOICE DROPDOWNS
+======================================= */
+
+.wordChoice {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  font-family: "TimesDotRom", serif;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+
+  background: transparent;
+
+  border: none;
+  border-bottom: 2px solid #000000;
+
+  padding: 0 22px 0 2px;
+  margin: 0 2px;
+
+  cursor: pointer;
+
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='black'><path d='M5 7l5 6 5-6z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 2px center;
+  background-size: 16px 16px;
+}
+
+.wordChoice:focus {
+  outline: none;
+  border-bottom-color: #666666;
+}
+
+.wordChoice option {
+  font-family: "TimesDotRom", serif;
+  font-size: 18px;
+}
+
+
+/* =======================================
+   NEXT PAGE LINK
+======================================= */
+
+#nextPageLink {
+  display: block;
+
+  margin-top: 40px;
+
+  font-family: "Alte Haas Grotesk", sans-serif;
+  font-size: 12px;
+
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  color: #000000;
+  text-decoration: none;
+
+  opacity: 0;
+  pointer-events: none;
+
+  transition: opacity 0.8s ease;
+}
+
+#nextPageLink.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* =======================================
+   MOBILE
+======================================= */
+
+@media (max-width: 600px) {
+
+  #content {
+    width: calc(100vw - 32px);
+    margin-left: 16px;
+  }
+
+  #pageLabel {
+    font-size: 11px;
+  }
+
+  #caption {
+    font-size: 30px;
+  }
+
+  .wordChoice {
+    padding-right: 20px;
+  }
+
+}
