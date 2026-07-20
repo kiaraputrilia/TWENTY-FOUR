@@ -1,406 +1,421 @@
 // ======================================
-// PAGE 9 — PHYSICALLY SIMULATED WATER RIPPLES
-// (WebGL2, double-buffer wave equation)
-// Ripples only appear on click/drag — no ambient auto-ripples
+// PAGE 5
+// LIVING RIBBON
 // ======================================
 
-const canvas = document.getElementById("waterCanvas");
-const gl = canvas.getContext("webgl2");
+const SENTENCE =
+`And then, I looked around and life didn’t feel so serious anymore. The truth is, I would do anything for you, but you would never ask me to. And that is the most selfless and most gentle love I have the gift of receiving.`;
 
-if (!gl) {
-    console.warn("WebGL2 is not supported in this browser — the ripple effect can't run.");
-}
-
-const floatExt = gl && gl.getExtension("EXT_color_buffer_float");
-
-if (gl && !floatExt) {
-    console.warn("EXT_color_buffer_float not supported — the ripple effect can't run.");
-}
+const playground =
+document.getElementById("playground");
 
 
 // ======================================
-// SHADERS
+// SETTINGS
 // ======================================
 
-const VERTEX_SRC = `#version 300 es
-in vec2 a_position;
-out vec2 v_uv;
+const WORD_SIZE =
+window.innerWidth < 600
+? 15
+: 18;
 
-void main() {
-    v_uv = a_position * 0.5 + 0.5;
-    gl_Position = vec4(a_position, 0.0, 1.0);
+// distance between collected words
+
+const SEGMENT_DISTANCE = 34;
+
+// how close cursor must be
+// to collect next word
+
+const ACTIVATE_RADIUS = 100;
+
+// movement
+
+const HEAD_EASE = 0.10;
+const FOLLOW_EASE = 0.08;
+const RETURN_EASE = 0.025;
+
+// breathing
+
+const JITTER_AMOUNT = 0.25;
+const JITTER_SPEED = 0.0015;
+
+
+// ======================================
+// POINTER
+// ======================================
+
+const pointer = {
+
+    x:window.innerWidth/2,
+    y:window.innerHeight/2
+
+};
+
+
+// invisible leader
+
+const head = {
+
+    x:pointer.x,
+    y:pointer.y
+
+};
+
+
+window.addEventListener("mousemove",e=>{
+
+    pointer.x=e.clientX;
+    pointer.y=e.clientY;
+
+});
+
+
+window.addEventListener("touchstart",e=>{
+
+    pointer.x=e.touches[0].clientX;
+    pointer.y=e.touches[0].clientY;
+
+},{passive:true});
+
+
+window.addEventListener("touchmove",e=>{
+
+    pointer.x=e.touches[0].clientX;
+    pointer.y=e.touches[0].clientY;
+
+},{passive:true});
+
+
+// ======================================
+// WORDS
+// ======================================
+
+const words =
+SENTENCE.split(/\s+/);
+
+const objects=[];
+
+
+// highest collected word
+
+let collected = -1;
+
+
+// ======================================
+// CREATE HTML
+// ======================================
+
+words.forEach((text,index)=>{
+
+    const div =
+    document.createElement("div");
+
+    div.className = "word";
+
+    div.textContent = text;
+
+    playground.appendChild(div);
+
+
+    // random position
+
+    const homeX =
+    Math.random()*
+    (window.innerWidth-240)+20;
+
+    const homeY =
+    Math.random()*
+    (window.innerHeight-180)+40;
+
+
+    objects.push({
+
+        index,
+
+        text,
+
+        element:div,
+
+        homeX,
+        homeY,
+
+        x:homeX,
+        y:homeY,
+
+        targetX:homeX,
+        targetY:homeY,
+
+        angle:
+        Math.random()*
+        Math.PI*2,
+
+        collected:false
+
+    });
+
+});
+
+
+// ======================================
+// DRAW
+// ======================================
+
+function draw(){
+
+    objects.forEach(word=>{
+
+        word.element.style.left =
+        word.x + "px";
+
+        word.element.style.top =
+        word.y + "px";
+
+    });
+
 }
-`;
 
-const SIM_FRAG_SRC = `#version 300 es
-precision highp float;
+draw();
 
-in vec2 v_uv;
-out vec4 outColor;
 
-uniform sampler2D u_previous;
-uniform sampler2D u_beforePrevious;
-uniform vec2 u_texel;
+// ======================================
+// COLLECT NEXT WORD
+// ======================================
 
-uniform bool u_injectActive;
-uniform vec2 u_injectPos;
-uniform float u_injectRadius;
-uniform float u_injectStrength;
+function collectWords(){
 
-uniform float u_damping;
+    const next =
+    collected + 1;
 
-void main() {
+    if(next >= objects.length){
 
-    float hUp    = texture(u_previous, v_uv + vec2(0.0, u_texel.y)).r;
-    float hDown  = texture(u_previous, v_uv - vec2(0.0, u_texel.y)).r;
-    float hLeft  = texture(u_previous, v_uv - vec2(u_texel.x, 0.0)).r;
-    float hRight = texture(u_previous, v_uv + vec2(u_texel.x, 0.0)).r;
+        return;
 
-    float hBefore = texture(u_beforePrevious, v_uv).r;
-
-    float newHeight = (hUp + hDown + hLeft + hRight) * 0.5 - hBefore;
-    newHeight *= u_damping;
-
-    if (u_injectActive) {
-        float dist = distance(v_uv, u_injectPos);
-        if (dist < u_injectRadius) {
-            float falloff = 1.0 - (dist / u_injectRadius);
-            newHeight += u_injectStrength * falloff * falloff;
-        }
     }
 
-    outColor = vec4(newHeight, 0.0, 0.0, 1.0);
-}
-`;
+    const word =
+    objects[next];
 
-// render pass: still water renders as the base blue color;
-// ripple edges (high slope) blend toward white as highlights
-const RENDER_FRAG_SRC = `#version 300 es
-precision highp float;
+    const dx = pointer.x - word.homeX;
+    const dy = pointer.y - word.homeY;
 
-in vec2 v_uv;
-out vec4 outColor;
-
-uniform sampler2D u_height;
-uniform vec2 u_texel;
-uniform float u_brightness;
-uniform vec3 u_baseColor;
-
-void main() {
-
-    float hL = texture(u_height, v_uv - vec2(u_texel.x, 0.0)).r;
-    float hR = texture(u_height, v_uv + vec2(u_texel.x, 0.0)).r;
-    float hD = texture(u_height, v_uv - vec2(0.0, u_texel.y)).r;
-    float hU = texture(u_height, v_uv + vec2(0.0, u_texel.y)).r;
-
-    vec2 gradient = vec2(hL - hR, hD - hU);
-    float slope = length(gradient) * u_brightness;
-
-    float highlight = clamp(slope, 0.0, 1.0);
-
-    vec3 color = mix(u_baseColor, vec3(1.0), highlight);
-
-    outColor = vec4(color, 1.0);
-}
-`;
-
-
-// ======================================
-// GL HELPERS
-// ======================================
-
-function compileShader(type, source) {
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(shader));
-        gl.deleteShader(shader);
-        return null;
-    }
-
-    return shader;
-}
-
-function createProgram(vsSource, fsSource) {
-    const vs = compileShader(gl.VERTEX_SHADER, vsSource);
-    const fs = compileShader(gl.FRAGMENT_SHADER, fsSource);
-
-    const program = gl.createProgram();
-    gl.attachShader(program, vs);
-    gl.attachShader(program, fs);
-    gl.linkProgram(program);
-
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.error(gl.getProgramInfoLog(program));
-        return null;
-    }
-
-    return program;
-}
-
-function createHeightBuffer(width, height) {
-
-    const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-
-    gl.texImage2D(
-        gl.TEXTURE_2D, 0, gl.R32F,
-        width, height, 0,
-        gl.RED, gl.FLOAT, null
+    const distance =
+    Math.sqrt(
+        dx*dx +
+        dy*dy
     );
 
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    if(distance < ACTIVATE_RADIUS){
 
-    const framebuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-    gl.framebufferTexture2D(
-        gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
-        gl.TEXTURE_2D, texture, 0
-    );
+        word.collected = true;
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        collected++;
 
-    return { texture, framebuffer };
-}
-
-
-// ======================================
-// SETUP (only runs if WebGL2 + float extension are available)
-// ======================================
-
-let simProgram, renderProgram;
-let quadBuffer;
-let simWidth, simHeight;
-let buffers = []; // 3 ping-ponged height buffers
-let order = [0, 1, 2]; // [target, previous, beforePrevious]
-
-let pointerPos = { x: 0.5, y: 0.5 };
-let pointerActive = false;
-
-const DAMPING = 0.985;
-const INJECT_RADIUS = 0.025;
-const CLICK_STRENGTH = -0.6;
-const RENDER_BRIGHTNESS = 45.0;
-
-// #002FA7 → normalized RGB
-const BASE_COLOR = [0.0, 0.1843, 0.6549];
-
-if (gl && floatExt) {
-
-    simProgram = createProgram(VERTEX_SRC, SIM_FRAG_SRC);
-    renderProgram = createProgram(VERTEX_SRC, RENDER_FRAG_SRC);
-
-    quadBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
-    gl.bufferData(
-        gl.ARRAY_BUFFER,
-        new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
-        gl.STATIC_DRAW
-    );
-
-    setupBuffers();
-
-    window.addEventListener("resize", () => {
-        resizeCanvas();
-        setupBuffers();
-    });
-
-    canvas.addEventListener("pointerdown", (e) => {
-        updatePointer(e);
-        pointerActive = true;
-        inject(pointerPos.x, pointerPos.y, CLICK_STRENGTH);
-    });
-
-    canvas.addEventListener("pointermove", (e) => {
-        updatePointer(e);
-        if (pointerActive) {
-            inject(pointerPos.x, pointerPos.y, CLICK_STRENGTH * 0.4);
-        }
-    });
-
-    canvas.addEventListener("pointerup", () => {
-        pointerActive = false;
-    });
-
-    canvas.addEventListener("pointercancel", () => {
-        pointerActive = false;
-    });
-
-    resizeCanvas();
-    requestAnimationFrame(animate);
-
-}
-
-
-// ======================================
-// SETUP HELPERS
-// ======================================
-
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-
-function setupBuffers() {
-
-    const maxDim = 420;
-    const aspect = window.innerWidth / window.innerHeight;
-
-    if (aspect >= 1) {
-        simWidth = maxDim;
-        simHeight = Math.round(maxDim / aspect);
-    } else {
-        simHeight = maxDim;
-        simWidth = Math.round(maxDim * aspect);
     }
 
-    buffers.forEach(b => {
-        gl.deleteTexture(b.texture);
-        gl.deleteFramebuffer(b.framebuffer);
-    });
-
-    buffers = [
-        createHeightBuffer(simWidth, simHeight),
-        createHeightBuffer(simWidth, simHeight),
-        createHeightBuffer(simWidth, simHeight)
-    ];
-
-    order = [0, 1, 2];
-
 }
 
-function updatePointer(e) {
-    const rect = canvas.getBoundingClientRect();
-    pointerPos.x = (e.clientX - rect.left) / rect.width;
-    pointerPos.y = 1.0 - (e.clientY - rect.top) / rect.height;
-}
-
-
 // ======================================
-// INJECT A RIPPLE INTO THE SIMULATION
+// ANIMATION
 // ======================================
 
-function inject(x, y, strength) {
-
-    const targetIdx = order[0];
-    const previousIdx = order[1];
-    const beforeIdx = order[2];
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, buffers[targetIdx].framebuffer);
-    gl.viewport(0, 0, simWidth, simHeight);
-
-    gl.useProgram(simProgram);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
-    const posLoc = gl.getAttribLocation(simProgram, "a_position");
-    gl.enableVertexAttribArray(posLoc);
-    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, buffers[previousIdx].texture);
-    gl.uniform1i(gl.getUniformLocation(simProgram, "u_previous"), 0);
-
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, buffers[beforeIdx].texture);
-    gl.uniform1i(gl.getUniformLocation(simProgram, "u_beforePrevious"), 1);
-
-    gl.uniform2f(gl.getUniformLocation(simProgram, "u_texel"), 1 / simWidth, 1 / simHeight);
-    gl.uniform1f(gl.getUniformLocation(simProgram, "u_damping"), DAMPING);
-
-    gl.uniform1i(gl.getUniformLocation(simProgram, "u_injectActive"), true);
-    gl.uniform2f(gl.getUniformLocation(simProgram, "u_injectPos"), x, y);
-    gl.uniform1f(gl.getUniformLocation(simProgram, "u_injectRadius"), INJECT_RADIUS);
-    gl.uniform1f(gl.getUniformLocation(simProgram, "u_injectStrength"), strength);
-
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-    order = [order[2], order[0], order[1]];
-
-}
-
-
-// ======================================
-// STEP THE SIMULATION (no new ripple this frame)
-// ======================================
-
-function step() {
-
-    const targetIdx = order[0];
-    const previousIdx = order[1];
-    const beforeIdx = order[2];
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, buffers[targetIdx].framebuffer);
-    gl.viewport(0, 0, simWidth, simHeight);
-
-    gl.useProgram(simProgram);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
-    const posLoc = gl.getAttribLocation(simProgram, "a_position");
-    gl.enableVertexAttribArray(posLoc);
-    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, buffers[previousIdx].texture);
-    gl.uniform1i(gl.getUniformLocation(simProgram, "u_previous"), 0);
-
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, buffers[beforeIdx].texture);
-    gl.uniform1i(gl.getUniformLocation(simProgram, "u_beforePrevious"), 1);
-
-    gl.uniform2f(gl.getUniformLocation(simProgram, "u_texel"), 1 / simWidth, 1 / simHeight);
-    gl.uniform1f(gl.getUniformLocation(simProgram, "u_damping"), DAMPING);
-    gl.uniform1i(gl.getUniformLocation(simProgram, "u_injectActive"), false);
-
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-    order = [order[2], order[0], order[1]];
-
-}
-
-
-// ======================================
-// RENDER TO SCREEN
-// ======================================
-
-function render() {
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.viewport(0, 0, canvas.width, canvas.height);
-
-    gl.useProgram(renderProgram);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
-    const posLoc = gl.getAttribLocation(renderProgram, "a_position");
-    gl.enableVertexAttribArray(posLoc);
-    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, buffers[order[1]].texture);
-    gl.uniform1i(gl.getUniformLocation(renderProgram, "u_height"), 0);
-
-    gl.uniform2f(gl.getUniformLocation(renderProgram, "u_texel"), 1 / simWidth, 1 / simHeight);
-    gl.uniform1f(gl.getUniformLocation(renderProgram, "u_brightness"), RENDER_BRIGHTNESS);
-    gl.uniform3f(gl.getUniformLocation(renderProgram, "u_baseColor"), BASE_COLOR[0], BASE_COLOR[1], BASE_COLOR[2]);
-
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-}
-
-
-// ======================================
-// ANIMATION LOOP
-// ======================================
+let time = 0;
 
 function animate() {
 
-    step();
-    render();
+    time += JITTER_SPEED;
 
-    requestAnimationFrame(animate);
+    // ----------------------------------
+    // Smooth invisible head
+    // ----------------------------------
+
+    head.x += (pointer.x - head.x) * HEAD_EASE;
+    head.y += (pointer.y - head.y) * HEAD_EASE;
+
+    // ----------------------------------
+    // Check if we've collected
+    // the next word
+    // ----------------------------------
+
+    collectWords();
+
+    // ----------------------------------
+    // Move every word
+    // ----------------------------------
+
+    objects.forEach((word, index) => {
+
+        // ==============================
+        // NOT COLLECTED
+        // ==============================
+
+        if (!word.collected) {
+
+            word.angle += JITTER_SPEED;
+
+            const breatheX =
+                Math.cos(word.angle) *
+                JITTER_AMOUNT;
+
+            const breatheY =
+                Math.sin(word.angle) *
+                JITTER_AMOUNT;
+
+            word.targetX =
+                word.homeX + breatheX;
+
+            word.targetY =
+                word.homeY + breatheY;
+
+        }
+
+        // ==============================
+        // FIRST COLLECTED WORD
+        // ==============================
+
+        else if (index === 0) {
+
+            // stay slightly behind
+            // the cursor
+
+            const dx =
+                pointer.x - head.x;
+
+            const dy =
+                pointer.y - head.y;
+
+            const angle =
+                Math.atan2(dy, dx);
+
+            word.targetX =
+                head.x -
+                Math.cos(angle) * 40;
+
+            word.targetY =
+                head.y -
+                Math.sin(angle) * 40;
+
+        }
+
+        // ==============================
+        // FOLLOW PREVIOUS COLLECTED WORD
+        // ==============================
+
+        else {
+
+            const previous =
+                objects[index - 1];
+
+            if (previous.collected) {
+
+                const dx =
+                    previous.x - word.x;
+
+                const dy =
+                    previous.y - word.y;
+
+                const angle =
+                    Math.atan2(dy, dx);
+
+                word.targetX =
+                    previous.x -
+                    Math.cos(angle) *
+                    SEGMENT_DISTANCE;
+
+                word.targetY =
+                    previous.y -
+                    Math.sin(angle) *
+                    SEGMENT_DISTANCE;
+
+            }
+
+            else {
+
+                word.angle += JITTER_SPEED;
+
+                word.targetX =
+                    word.homeX +
+                    Math.cos(word.angle) *
+                    JITTER_AMOUNT;
+
+                word.targetY =
+                    word.homeY +
+                    Math.sin(word.angle) *
+                    JITTER_AMOUNT;
+
+            }
+
+        }
+
+        // ==============================
+        // Smooth interpolation
+        // ==============================
+
+        const ease =
+            word.collected
+                ? FOLLOW_EASE
+                : RETURN_EASE;
+
+        word.x +=
+            (word.targetX - word.x) *
+            ease;
+
+        word.y +=
+            (word.targetY - word.y) *
+            ease;
+
+    });
+
+    draw();
+
+    requestAnimationFrame(
+        animate
+    );
 
 }
+
+animate();
+
+// ======================================
+// RESIZE
+// ======================================
+
+window.addEventListener("resize", () => {
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    pointer.x = width / 2;
+    pointer.y = height / 2;
+
+    head.x = pointer.x;
+    head.y = pointer.y;
+
+    objects.forEach(word => {
+
+        // keep words inside screen
+
+        word.homeX = Math.min(
+            Math.max(word.homeX, 20),
+            width - 120
+        );
+
+        word.homeY = Math.min(
+            Math.max(word.homeY, 40),
+            height - 40
+        );
+
+        // if the word hasn't been collected,
+        // move it to its new home
+
+        if (!word.collected) {
+
+            word.x = word.homeX;
+            word.y = word.homeY;
+
+        }
+
+    });
+
+    draw();
+
+});

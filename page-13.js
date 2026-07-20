@@ -1,421 +1,326 @@
 // ======================================
-// PAGE 5
-// LIVING RIBBON
+// PAGE 8
 // ======================================
 
-const SENTENCE =
-`And then, I looked around and life didn’t feel so serious anymore. The truth is, I would do anything for you, but you would never ask me to. And that is the most selfless and most gentle love I have the gift of receiving.`;
+const canvas = document.getElementById("poemCanvas");
+const ctx = canvas.getContext("2d");
 
-const playground =
-document.getElementById("playground");
+const poemGroups = document.querySelectorAll(".poem-group");
 
+let letters = [];
+let words = []; // word-level bounding boxes, for clickable words
 
-// ======================================
-// SETTINGS
-// ======================================
+const REVEAL_RADIUS = 50;
 
-const WORD_SIZE =
-window.innerWidth < 600
-? 15
-: 18;
+// the word (case-insensitive, punctuation-stripped) that should be clickable
+const LINK_WORD = "silent";
+const LINK_HREF = "page-14.html";
 
-// distance between collected words
-
-const SEGMENT_DISTANCE = 34;
-
-// how close cursor must be
-// to collect next word
-
-const ACTIVATE_RADIUS = 100;
-
-// movement
-
-const HEAD_EASE = 0.10;
-const FOLLOW_EASE = 0.08;
-const RETURN_EASE = 0.025;
-
-// breathing
-
-const JITTER_AMOUNT = 0.25;
-const JITTER_SPEED = 0.0015;
-
-
-// ======================================
-// POINTER
-// ======================================
-
-const pointer = {
-
-    x:window.innerWidth/2,
-    y:window.innerHeight/2
-
+let pointer = {
+    x: -9999,
+    y: -9999,
+    active: false
 };
 
-
-// invisible leader
-
-const head = {
-
-    x:pointer.x,
-    y:pointer.y
-
-};
+// used to tell a genuine tap/click apart from a drag,
+// so hovering to reveal letters doesn't accidentally trigger the link
+let pointerDownPos = null;
+const CLICK_MOVE_THRESHOLD = 6;
 
 
-window.addEventListener("mousemove",e=>{
-
-    pointer.x=e.clientX;
-    pointer.y=e.clientY;
-
-});
-
-
-window.addEventListener("touchstart",e=>{
-
-    pointer.x=e.touches[0].clientX;
-    pointer.y=e.touches[0].clientY;
-
-},{passive:true});
-
-
-window.addEventListener("touchmove",e=>{
-
-    pointer.x=e.touches[0].clientX;
-    pointer.y=e.touches[0].clientY;
-
-},{passive:true});
+function getFontSize() {
+    return window.innerWidth < 600 ? 34 : 36;
+}
 
 
 // ======================================
-// WORDS
+// CANVAS SIZE — covers the full scrollable page
 // ======================================
 
-const words =
-SENTENCE.split(/\s+/);
-
-const objects=[];
-
-
-// highest collected word
-
-let collected = -1;
+function resizeCanvas() {
+    canvas.width = document.documentElement.scrollWidth;
+    canvas.height = document.documentElement.scrollHeight;
+}
 
 
 // ======================================
-// CREATE HTML
+// BUILD LETTER DATA
 // ======================================
 
-words.forEach((text,index)=>{
+function buildLetters() {
 
-    const div =
-    document.createElement("div");
+    letters = [];
+    words = [];
 
-    div.className = "word";
+    const fontSize = getFontSize();
 
-    div.textContent = text;
+    ctx.font = `${fontSize}px TimesDotRom`;
+    ctx.textBaseline = "top";
 
-    playground.appendChild(div);
+    const lineHeight = fontSize * 0.9;
 
+    const canvasRect = canvas.getBoundingClientRect();
 
-    // random position
+    poemGroups.forEach(group => {
 
-    const homeX =
-    Math.random()*
-    (window.innerWidth-240)+20;
+        const poemEl = group.querySelector(".poem");
+        const poemRect = poemEl.getBoundingClientRect();
 
-    const homeY =
-    Math.random()*
-    (window.innerHeight-180)+40;
+        const groupStartX = poemRect.left - canvasRect.left;
+        const groupStartY = poemRect.top - canvasRect.top;
+        const maxWidth = poemRect.width;
 
+        let y = groupStartY;
 
-    objects.push({
+        const lineEls = poemEl.querySelectorAll(".line");
 
-        index,
+        lineEls.forEach(lineEl => {
 
-        text,
+            let x = groupStartX;
 
-        element:div,
+            const text = lineEl.textContent.trim();
 
-        homeX,
-        homeY,
+            let lettersOnly = [];
+            for (let char of text) {
+                if (/[A-Za-z]/.test(char)) lettersOnly.push(char);
+            }
 
-        x:homeX,
-        y:homeY,
+            let shuffled = [...lettersOnly];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
 
-        targetX:homeX,
-        targetY:homeY,
+            let index = 0;
 
-        angle:
-        Math.random()*
-        Math.PI*2,
+            const tokens = text.split(/(\s+)/);
 
-        collected:false
+            tokens.forEach(token => {
+
+                if (token === "") return;
+
+                const isSpace = /^\s+$/.test(token);
+
+                if (isSpace) {
+
+                    if (x === groupStartX) return;
+
+                    for (let char of token) {
+                        const width = ctx.measureText(char).width;
+                        letters.push({
+                            correct: char,
+                            scrambled: char,
+                            x, y, width,
+                            centerX: x + width / 2,
+                            centerY: y + fontSize / 2
+                        });
+                        x += width;
+                    }
+
+                } else {
+
+                    let charWidths = [];
+                    let wordWidth = 0;
+
+                    for (let char of token) {
+                        const w = ctx.measureText(char).width;
+                        charWidths.push(w);
+                        wordWidth += w;
+                    }
+
+                    if (x + wordWidth > groupStartX + maxWidth && x > groupStartX) {
+                        x = groupStartX;
+                        y += lineHeight;
+                    }
+
+                    // track this word's bounding box before laying out its letters
+                    const wordStartX = x;
+                    const wordStartY = y;
+
+                    for (let i = 0; i < token.length; i++) {
+
+                        const char = token[i];
+                        const width = charWidths[i];
+
+                        let scrambled = char;
+
+                        if (/[A-Za-z]/.test(char)) {
+                            scrambled = shuffled[index];
+                            index++;
+                        }
+
+                        letters.push({
+                            correct: char,
+                            scrambled,
+                            x, y, width,
+                            centerX: x + width / 2,
+                            centerY: y + fontSize / 2
+                        });
+
+                        x += width;
+                    }
+
+                    // strip punctuation, compare case-insensitively
+                    const cleanWord = token.replace(/[^A-Za-z]/g, "").toLowerCase();
+
+                    if (cleanWord === LINK_WORD) {
+                        words.push({
+                            minX: wordStartX,
+                            maxX: x,
+                            minY: wordStartY,
+                            maxY: wordStartY + fontSize,
+                            href: LINK_HREF
+                        });
+                    }
+
+                }
+
+            });
+
+            y += lineHeight;
+
+        });
 
     });
 
-});
+}
 
 
 // ======================================
 // DRAW
 // ======================================
 
-function draw(){
+function drawLetters() {
 
-    objects.forEach(word=>{
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        word.element.style.left =
-        word.x + "px";
+    ctx.fillStyle = "#000";
+    ctx.font = `${getFontSize()}px TimesDotRom`;
+    ctx.textBaseline = "top";
 
-        word.element.style.top =
-        word.y + "px";
+    letters.forEach(letter => {
+
+        let charToShow = letter.scrambled;
+
+        if (pointer.active) {
+            const dx = letter.centerX - pointer.x;
+            const dy = letter.centerY - pointer.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < REVEAL_RADIUS) charToShow = letter.correct;
+        }
+
+        ctx.fillText(charToShow, letter.x, letter.y);
 
     });
 
 }
 
-draw();
-
 
 // ======================================
-// COLLECT NEXT WORD
+// WORD HIT-TESTING
 // ======================================
 
-function collectWords(){
+function getWordAt(x, y) {
 
-    const next =
-    collected + 1;
-
-    if(next >= objects.length){
-
-        return;
-
-    }
-
-    const word =
-    objects[next];
-
-    const dx = pointer.x - word.homeX;
-    const dy = pointer.y - word.homeY;
-
-    const distance =
-    Math.sqrt(
-        dx*dx +
-        dy*dy
-    );
-
-    if(distance < ACTIVATE_RADIUS){
-
-        word.collected = true;
-
-        collected++;
-
-    }
-
-}
-
-// ======================================
-// ANIMATION
-// ======================================
-
-let time = 0;
-
-function animate() {
-
-    time += JITTER_SPEED;
-
-    // ----------------------------------
-    // Smooth invisible head
-    // ----------------------------------
-
-    head.x += (pointer.x - head.x) * HEAD_EASE;
-    head.y += (pointer.y - head.y) * HEAD_EASE;
-
-    // ----------------------------------
-    // Check if we've collected
-    // the next word
-    // ----------------------------------
-
-    collectWords();
-
-    // ----------------------------------
-    // Move every word
-    // ----------------------------------
-
-    objects.forEach((word, index) => {
-
-        // ==============================
-        // NOT COLLECTED
-        // ==============================
-
-        if (!word.collected) {
-
-            word.angle += JITTER_SPEED;
-
-            const breatheX =
-                Math.cos(word.angle) *
-                JITTER_AMOUNT;
-
-            const breatheY =
-                Math.sin(word.angle) *
-                JITTER_AMOUNT;
-
-            word.targetX =
-                word.homeX + breatheX;
-
-            word.targetY =
-                word.homeY + breatheY;
-
-        }
-
-        // ==============================
-        // FIRST COLLECTED WORD
-        // ==============================
-
-        else if (index === 0) {
-
-            // stay slightly behind
-            // the cursor
-
-            const dx =
-                pointer.x - head.x;
-
-            const dy =
-                pointer.y - head.y;
-
-            const angle =
-                Math.atan2(dy, dx);
-
-            word.targetX =
-                head.x -
-                Math.cos(angle) * 40;
-
-            word.targetY =
-                head.y -
-                Math.sin(angle) * 40;
-
-        }
-
-        // ==============================
-        // FOLLOW PREVIOUS COLLECTED WORD
-        // ==============================
-
-        else {
-
-            const previous =
-                objects[index - 1];
-
-            if (previous.collected) {
-
-                const dx =
-                    previous.x - word.x;
-
-                const dy =
-                    previous.y - word.y;
-
-                const angle =
-                    Math.atan2(dy, dx);
-
-                word.targetX =
-                    previous.x -
-                    Math.cos(angle) *
-                    SEGMENT_DISTANCE;
-
-                word.targetY =
-                    previous.y -
-                    Math.sin(angle) *
-                    SEGMENT_DISTANCE;
-
-            }
-
-            else {
-
-                word.angle += JITTER_SPEED;
-
-                word.targetX =
-                    word.homeX +
-                    Math.cos(word.angle) *
-                    JITTER_AMOUNT;
-
-                word.targetY =
-                    word.homeY +
-                    Math.sin(word.angle) *
-                    JITTER_AMOUNT;
-
-            }
-
-        }
-
-        // ==============================
-        // Smooth interpolation
-        // ==============================
-
-        const ease =
-            word.collected
-                ? FOLLOW_EASE
-                : RETURN_EASE;
-
-        word.x +=
-            (word.targetX - word.x) *
-            ease;
-
-        word.y +=
-            (word.targetY - word.y) *
-            ease;
-
-    });
-
-    draw();
-
-    requestAnimationFrame(
-        animate
+    return words.find(w =>
+        x >= w.minX && x <= w.maxX &&
+        y >= w.minY && y <= w.maxY
     );
 
 }
 
-animate();
 
 // ======================================
-// RESIZE
+// POINTER INTERACTION
 // ======================================
 
-window.addEventListener("resize", () => {
+function getPointerPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+    };
+}
 
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+canvas.addEventListener("pointermove", (e) => {
 
-    pointer.x = width / 2;
-    pointer.y = height / 2;
+    const pos = getPointerPos(e);
+    pointer.x = pos.x;
+    pointer.y = pos.y;
+    pointer.active = true;
+    drawLetters();
 
-    head.x = pointer.x;
-    head.y = pointer.y;
-
-    objects.forEach(word => {
-
-        // keep words inside screen
-
-        word.homeX = Math.min(
-            Math.max(word.homeX, 20),
-            width - 120
-        );
-
-        word.homeY = Math.min(
-            Math.max(word.homeY, 40),
-            height - 40
-        );
-
-        // if the word hasn't been collected,
-        // move it to its new home
-
-        if (!word.collected) {
-
-            word.x = word.homeX;
-            word.y = word.homeY;
-
-        }
-
-    });
-
-    draw();
+    // show a pointer cursor when hovering the clickable word
+    canvas.style.cursor = getWordAt(pos.x, pos.y) ? "pointer" : "default";
 
 });
+
+canvas.addEventListener("pointerdown", (e) => {
+
+    const pos = getPointerPos(e);
+    pointer.x = pos.x;
+    pointer.y = pos.y;
+    pointer.active = true;
+
+    // remember where the press started, to distinguish a tap from a drag
+    pointerDownPos = pos;
+
+    drawLetters();
+
+});
+
+canvas.addEventListener("pointerup", (e) => {
+
+    const pos = getPointerPos(e);
+
+    // only treat this as a "click" if the pointer barely moved
+    if (pointerDownPos) {
+
+        const dx = pos.x - pointerDownPos.x;
+        const dy = pos.y - pointerDownPos.y;
+        const moved = Math.sqrt(dx * dx + dy * dy);
+
+        if (moved < CLICK_MOVE_THRESHOLD) {
+
+            const word = getWordAt(pos.x, pos.y);
+
+            if (word) {
+                window.location.href = word.href;
+                return;
+            }
+
+        }
+
+    }
+
+    pointerDownPos = null;
+    pointer.active = false;
+    drawLetters();
+
+});
+
+canvas.addEventListener("pointercancel", () => {
+    pointerDownPos = null;
+    pointer.active = false;
+    drawLetters();
+});
+
+canvas.addEventListener("pointerleave", () => {
+    pointerDownPos = null;
+    pointer.active = false;
+    drawLetters();
+});
+
+
+// ======================================
+// START
+// ======================================
+
+function init() {
+    resizeCanvas();
+    buildLetters();
+    drawLetters();
+}
+
+window.addEventListener("load", init);
+window.addEventListener("resize", init);

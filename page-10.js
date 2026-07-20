@@ -1,326 +1,196 @@
 // ======================================
-// PAGE 8
+// EMOJIS
 // ======================================
 
-const canvas = document.getElementById("poemCanvas");
-const ctx = canvas.getContext("2d");
+const emojiSet = [
+    "🥐",
+    "🥖",
+    "🥯",
+    "🥞",
+    "🍔",
+    "🧀",
+    "🍝",
+    "🍜",
+    "🍚",
+    "🍣",
+    "☕"
+];
 
-const poemGroups = document.querySelectorAll(".poem-group");
+const emojis = [];
 
-let letters = [];
-let words = []; // word-level bounding boxes, for clickable words
+// ======================================
+// SIX COPIES OF EACH EMOJI
+// ======================================
 
-const REVEAL_RADIUS = 50;
+for (let i = 0; i < 20; i++) {
 
-// the word (case-insensitive, punctuation-stripped) that should be clickable
-const LINK_WORD = "silent";
-const LINK_HREF = "page-11.html";
+    emojis.push(...emojiSet);
 
-let pointer = {
-    x: -9999,
-    y: -9999,
-    active: false
-};
+}
 
-// used to tell a genuine tap/click apart from a drag,
-// so hovering to reveal letters doesn't accidentally trigger the link
-let pointerDownPos = null;
-const CLICK_MOVE_THRESHOLD = 6;
+const container = document.getElementById("emojiContainer");
+
+const emojiObjects = [];
+
+let coffeePlaced = false;
 
 
-function getFontSize() {
-    return window.innerWidth < 600 ? 34 : 36;
+// ======================================
+// RANDOM POSITION
+// ======================================
+
+function randomPosition(size = 60) {
+
+    return {
+
+        x: Math.random() * (window.innerWidth - size),
+
+        y: Math.random() * (window.innerHeight - size)
+
+    };
+
 }
 
 
-// ======================================
-// CANVAS SIZE — covers the full scrollable page
-// ======================================
-
-function resizeCanvas() {
-    canvas.width = document.documentElement.scrollWidth;
-    canvas.height = document.documentElement.scrollHeight;
-}
-
 
 // ======================================
-// BUILD LETTER DATA
+// CREATE EMOJIS
 // ======================================
 
-function buildLetters() {
+emojis.forEach(emoji => {
 
-    letters = [];
-    words = [];
+    const div = document.createElement("div");
 
-    const fontSize = getFontSize();
+    div.className = "emoji";
+    // const size = 22 + Math.random() * 24;
 
-    ctx.font = `${fontSize}px TimesDotRom`;
-    ctx.textBaseline = "top";
+    // div.style.fontSize = size + "px";
 
-    const lineHeight = fontSize * 0.9;
+    div.textContent = emoji;
 
-    const canvasRect = canvas.getBoundingClientRect();
+    let pos = randomPosition();
 
-    poemGroups.forEach(group => {
+    let stationary = false;
 
-        const poemEl = group.querySelector(".poem");
-        const poemRect = poemEl.getBoundingClientRect();
 
-        const groupStartX = poemRect.left - canvasRect.left;
-        const groupStartY = poemRect.top - canvasRect.top;
-        const maxWidth = poemRect.width;
+    // ----------------------------------
+    // ONLY THE FIRST COFFEE IS STILL
+    // ----------------------------------
 
-        let y = groupStartY;
+    if (emoji === "☕" && !coffeePlaced) {
 
-        const lineEls = poemEl.querySelectorAll(".line");
+        stationary = true;
 
-        lineEls.forEach(lineEl => {
+        coffeePlaced = true;
 
-            let x = groupStartX;
+        // Completely random location every refresh
+        pos = randomPosition(100);
 
-            const text = lineEl.textContent.trim();
+        div.classList.add("target");
 
-            let lettersOnly = [];
-            for (let char of text) {
-                if (/[A-Za-z]/.test(char)) lettersOnly.push(char);
-            }
+        div.addEventListener("click", () => {
 
-            let shuffled = [...lettersOnly];
-            for (let i = shuffled.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-            }
-
-            let index = 0;
-
-            const tokens = text.split(/(\s+)/);
-
-            tokens.forEach(token => {
-
-                if (token === "") return;
-
-                const isSpace = /^\s+$/.test(token);
-
-                if (isSpace) {
-
-                    if (x === groupStartX) return;
-
-                    for (let char of token) {
-                        const width = ctx.measureText(char).width;
-                        letters.push({
-                            correct: char,
-                            scrambled: char,
-                            x, y, width,
-                            centerX: x + width / 2,
-                            centerY: y + fontSize / 2
-                        });
-                        x += width;
-                    }
-
-                } else {
-
-                    let charWidths = [];
-                    let wordWidth = 0;
-
-                    for (let char of token) {
-                        const w = ctx.measureText(char).width;
-                        charWidths.push(w);
-                        wordWidth += w;
-                    }
-
-                    if (x + wordWidth > groupStartX + maxWidth && x > groupStartX) {
-                        x = groupStartX;
-                        y += lineHeight;
-                    }
-
-                    // track this word's bounding box before laying out its letters
-                    const wordStartX = x;
-                    const wordStartY = y;
-
-                    for (let i = 0; i < token.length; i++) {
-
-                        const char = token[i];
-                        const width = charWidths[i];
-
-                        let scrambled = char;
-
-                        if (/[A-Za-z]/.test(char)) {
-                            scrambled = shuffled[index];
-                            index++;
-                        }
-
-                        letters.push({
-                            correct: char,
-                            scrambled,
-                            x, y, width,
-                            centerX: x + width / 2,
-                            centerY: y + fontSize / 2
-                        });
-
-                        x += width;
-                    }
-
-                    // strip punctuation, compare case-insensitively
-                    const cleanWord = token.replace(/[^A-Za-z]/g, "").toLowerCase();
-
-                    if (cleanWord === LINK_WORD) {
-                        words.push({
-                            minX: wordStartX,
-                            maxX: x,
-                            minY: wordStartY,
-                            maxY: wordStartY + fontSize,
-                            href: LINK_HREF
-                        });
-                    }
-
-                }
-
-            });
-
-            y += lineHeight;
+            window.location.href = "page-11.html";
 
         });
 
-    });
+        div.addEventListener("touchstart", e => {
 
-}
+            e.preventDefault();
 
+            window.location.href = "page-11.html";
 
-// ======================================
-// DRAW
-// ======================================
-
-function drawLetters() {
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = "#000";
-    ctx.font = `${getFontSize()}px TimesDotRom`;
-    ctx.textBaseline = "top";
-
-    letters.forEach(letter => {
-
-        let charToShow = letter.scrambled;
-
-        if (pointer.active) {
-            const dx = letter.centerX - pointer.x;
-            const dy = letter.centerY - pointer.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < REVEAL_RADIUS) charToShow = letter.correct;
-        }
-
-        ctx.fillText(charToShow, letter.x, letter.y);
-
-    });
-
-}
-
-
-// ======================================
-// WORD HIT-TESTING
-// ======================================
-
-function getWordAt(x, y) {
-
-    return words.find(w =>
-        x >= w.minX && x <= w.maxX &&
-        y >= w.minY && y <= w.maxY
-    );
-
-}
-
-
-// ======================================
-// POINTER INTERACTION
-// ======================================
-
-function getPointerPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-    };
-}
-
-canvas.addEventListener("pointermove", (e) => {
-
-    const pos = getPointerPos(e);
-    pointer.x = pos.x;
-    pointer.y = pos.y;
-    pointer.active = true;
-    drawLetters();
-
-    // show a pointer cursor when hovering the clickable word
-    canvas.style.cursor = getWordAt(pos.x, pos.y) ? "pointer" : "default";
-
-});
-
-canvas.addEventListener("pointerdown", (e) => {
-
-    const pos = getPointerPos(e);
-    pointer.x = pos.x;
-    pointer.y = pos.y;
-    pointer.active = true;
-
-    // remember where the press started, to distinguish a tap from a drag
-    pointerDownPos = pos;
-
-    drawLetters();
-
-});
-
-canvas.addEventListener("pointerup", (e) => {
-
-    const pos = getPointerPos(e);
-
-    // only treat this as a "click" if the pointer barely moved
-    if (pointerDownPos) {
-
-        const dx = pos.x - pointerDownPos.x;
-        const dy = pos.y - pointerDownPos.y;
-        const moved = Math.sqrt(dx * dx + dy * dy);
-
-        if (moved < CLICK_MOVE_THRESHOLD) {
-
-            const word = getWordAt(pos.x, pos.y);
-
-            if (word) {
-                window.location.href = word.href;
-                return;
-            }
-
-        }
+        });
 
     }
 
-    pointerDownPos = null;
-    pointer.active = false;
-    drawLetters();
+    div.style.left = pos.x + "px";
+    div.style.top = pos.y + "px";
+
+    container.appendChild(div);
+
+    emojiObjects.push({
+
+        element: div,
+
+        x: pos.x,
+
+        y: pos.y,
+
+        dx: stationary
+            ? 0
+            : (Math.random() * 1.8 + 0.5) *
+              (Math.random() < 0.5 ? -1 : 1),
+
+        dy: stationary
+            ? 0
+            : (Math.random() * 1.8 + 0.5) *
+              (Math.random() < 0.5 ? -1 : 1),
+
+        stationary
+
+    });
 
 });
 
-canvas.addEventListener("pointercancel", () => {
-    pointerDownPos = null;
-    pointer.active = false;
-    drawLetters();
-});
-
-canvas.addEventListener("pointerleave", () => {
-    pointerDownPos = null;
-    pointer.active = false;
-    drawLetters();
-});
 
 
 // ======================================
-// START
+// ANIMATION
 // ======================================
 
-function init() {
-    resizeCanvas();
-    buildLetters();
-    drawLetters();
+function animate() {
+
+    emojiObjects.forEach(obj => {
+
+        if (obj.stationary) return;
+
+        obj.x += obj.dx;
+        obj.y += obj.dy;
+
+        const size = 48;
+
+        if (obj.x <= 0 || obj.x >= window.innerWidth - size) {
+
+            obj.dx *= -1;
+
+        }
+
+        if (obj.y <= 0 || obj.y >= window.innerHeight - size) {
+
+            obj.dy *= -1;
+
+        }
+
+        obj.element.style.left = obj.x + "px";
+        obj.element.style.top = obj.y + "px";
+
+    });
+
+    requestAnimationFrame(animate);
+
 }
 
-window.addEventListener("load", init);
-window.addEventListener("resize", init);
+animate();
+
+
+
+// ======================================
+// KEEP EMOJIS INSIDE AFTER RESIZE
+// ======================================
+
+window.addEventListener("resize", () => {
+
+    emojiObjects.forEach(obj => {
+
+        obj.x = Math.min(obj.x, window.innerWidth - 60);
+
+        obj.y = Math.min(obj.y, window.innerHeight - 60);
+
+        obj.element.style.left = obj.x + "px";
+
+        obj.element.style.top = obj.y + "px";
+
+    });
+
+});

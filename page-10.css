@@ -4,82 +4,262 @@
 }
 
 @font-face {
-  font-family: "AlteHaasGrotesk";
+  font-family: "Alte Haas Grotesk";
   src: url("AlteHaasGroteskRegular.ttf") format("truetype");
 }
+
+/* =======================================
+   GLOBAL
+======================================= */
 
 * {
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
+
   width: 100%;
-  background: white;
+  height: 100%;
+
+  overflow: hidden;
+
+  background: #ffffff;
 }
 
-#poemCanvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 1;
-  display: block;
-  touch-action: pan-y;
+
+/* =======================================
+   BACKGROUND IMAGE
+======================================= */
+
+/* =======================================
+   CENTER IMAGE
+======================================= */
+
+#background {
+
+  position: fixed;
+
+  left: 50%;
+  top: 50%;
+
+  transform: translate(-50%, -50%);
+
+  width: min(78vw, 1100px);
+  max-width: none;
+
+  height: auto;
+
+  z-index: 0;
+
+  pointer-events: none;
+
+  user-select: none;
+
 }
+
+/* =======================================
+   EMOJI LAYER
+======================================= */
+
+#emojiContainer {
+
+  position: fixed;
+
+  inset: 0;
+
+  width: 100vw;
+  height: 100vh;
+
+  overflow: hidden;
+
+  z-index: 1;
+
+}
+
+
+/* =======================================
+   INDIVIDUAL EMOJIS
+======================================= */
+
+.emoji {
+
+  position: absolute;
+
+  font-size: 42px;
+
+  line-height: 1;
+
+  user-select: none;
+  -webkit-user-select: none;
+
+  pointer-events: none;
+
+  will-change: transform;
+
+}
+
+
+/* =======================================
+   CLICKABLE EMOJI
+======================================= */
+
+.target {
+
+  pointer-events: auto;
+
+  cursor: pointer;
+
+  transition: transform .25s ease;
+
+}
+
+.target:hover {
+
+  transform: scale(2);
+
+}
+
+
+/* =======================================
+   CONTENT
+======================================= */
 
 #content {
+
   position: relative;
-  z-index: 2;
+
+  z-index: 5;
+
   width: min(50vw, 700px);
+
   margin-left: 24px;
+
   padding-top: 24px;
   padding-bottom: 60px;
 
-  /* let hover/touch pass through to the canvas underneath */
-  pointer-events: none;
 }
+
+
+/* =======================================
+   PAGE LABEL
+======================================= */
+
+#pageLabel {
+
+  font-family: "Alte Haas Grotesk", sans-serif;
+
+  font-size: 12px;
+
+  letter-spacing: 0.08em;
+
+  text-transform: uppercase;
+
+  color: #000;
+
+  margin-bottom: 36px;
+
+}
+
+
+/* =======================================
+   POEM
+======================================= */
+
+#caption {
+
+  font-family: "TimesDotRom", serif;
+
+  font-size: 36px;
+
+  line-height: 1.15;
+
+  color: #000;
+
+}
+
+.line {
+
+  margin-bottom: 4px;
+
+}
+
+
+/* =======================================
+   CREDIT
+======================================= */
 
 #credit {
-  font-family: "AlteHaasGrotesk", sans-serif;
+
+  margin-top: 40px;
+
+  font-family: "Alte Haas Grotesk", sans-serif;
+
   font-size: 12px;
+
   letter-spacing: 0.08em;
+
   text-transform: uppercase;
+
   color: #000;
-  margin-bottom: 40px;
+
 }
 
-.poem-group {
-  margin-bottom: 48px;
-}
 
-.label {
-  font-family: "AlteHaasGrotesk", sans-serif;
-  font-size: 14px;
-  color: #000;
-  margin-bottom: 16px;
-}
-
-.poem {
-  visibility: hidden;
-  font-family: "TimesDotRom", serif;
-  font-size: 36px;
-  line-height: 0.9;
-}
+/* =======================================
+   MOBILE
+======================================= */
 
 @media (max-width: 600px) {
 
+  #background {
+
+    width: auto;
+    height: 82vh;
+    max-width: none;
+
+  }
+
+  .emoji {
+
+    font-size: 30px;
+
+  }
+
   #content {
+
     width: calc(100vw - 32px);
+
     margin-left: 16px;
+
+    padding-top: 16px;
+
   }
 
-  .poem {
-    font-size: 34px;
-  }
+  #pageLabel {
 
-  #credit, .label {
     font-size: 11px;
+
+    margin-bottom: 28px;
+
+  }
+
+  #caption {
+
+    font-size: 30px;
+
+    line-height: 1.15;
+
+  }
+
+  #credit {
+
+    font-size: 11px;
+
+    margin-top: 32px;
+
   }
 
 }
