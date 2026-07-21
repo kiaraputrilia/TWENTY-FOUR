@@ -19,6 +19,7 @@
   const RELEASE_DECAY_PER_MS = 0.00035; // how fast the calm drains once you let go
   const LOCK_HOLD_MS = 700;        // must stay fully calm this long before it locks permanently
   const LINE_HEIGHT_RATIO = 0.98;
+  const NEXT_PAGE_URL = "page-16.html";
 
   let W = 0, H = 0, DPR = 1;
   let fontSize = 36;
@@ -30,6 +31,8 @@
   let settled = false;
   let hintHidden = false;
   let fontsReady = false;
+  let suppressNextClick = false; // swallow the release-click that caused settling
+  let navigating = false;
 
   // ------------------------------------------------------------------
   // Setup
@@ -137,12 +140,35 @@
     fullyCalmSince = null;
   }
 
+  function goToNextPage() {
+    if (navigating) return;
+    navigating = true;
+    canvas.style.transition = "opacity 0.6s ease";
+    canvas.style.opacity = "0";
+    setTimeout(() => {
+      window.location.href = NEXT_PAGE_URL;
+    }, 600);
+  }
+
   canvas.addEventListener("mousedown", beginHold);
   canvas.addEventListener("touchstart", beginHold, { passive: true });
   window.addEventListener("mouseup", endHold);
   window.addEventListener("touchend", endHold);
   window.addEventListener("touchcancel", endHold);
   window.addEventListener("blur", endHold);
+
+  // Navigate once the poem has settled and the user clicks/taps —
+  // but ignore the synthetic click fired by releasing the hold that
+  // caused it to settle in the first place.
+  canvas.addEventListener("click", () => {
+    if (suppressNextClick) {
+      suppressNextClick = false;
+      return;
+    }
+    if (settled) {
+      goToNextPage();
+    }
+  });
 
   // ------------------------------------------------------------------
   // Animation
@@ -160,7 +186,11 @@
         calm = Math.min(1, held / HOLD_DURATION_MS);
         if (calm >= 1) {
           if (fullyCalmSince === null) fullyCalmSince = now;
-          if (now - fullyCalmSince >= LOCK_HOLD_MS) settled = true;
+          if (now - fullyCalmSince >= LOCK_HOLD_MS) {
+            settled = true;
+            suppressNextClick = true; // this hold's release shouldn't trigger nav
+            canvas.style.cursor = "pointer";
+          }
         } else {
           fullyCalmSince = null;
         }
