@@ -27,6 +27,27 @@ body {
   overflow: hidden;
 
   background: #ffffff;
+
+  transition: opacity 0.6s ease;
+}
+
+body.complete #caption {
+
+  cursor: pointer;
+
+}
+
+body.complete #credit {
+
+  animation: pulseCredit 1.8s ease-in-out infinite;
+
+}
+
+@keyframes pulseCredit {
+
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+
 }
 
 
@@ -110,6 +131,12 @@ body {
 .letter.revealed {
 
   color: #000;
+
+}
+
+.letter.slow-fade {
+
+  transition: color 3.5s ease, text-shadow 3.5s ease;
 
 }
 

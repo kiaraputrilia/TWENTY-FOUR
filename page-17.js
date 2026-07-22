@@ -150,9 +150,95 @@
 
   const activeTimeouts = {};
 
+  // ------------------------------------------------------------------
+  // Completion tracking: once every unique letter used in the poem
+  // has been revealed at least once, the poem is "whole" — tapping
+  // it then advances to the next page.
+  // ------------------------------------------------------------------
+
+  const NEXT_PAGE_URL = "page-13.html";
+
+  const uniqueLettersInPoem = new Set(
+    POEM_PARAGRAPHS.join("").toLowerCase().split("").filter(ch => /[a-z]/.test(ch))
+  );
+  const revealedLetters = new Set();
+  let complete = false;
+  let navigating = false;
+
+  function checkCompletion() {
+    if (complete) return;
+    if (revealedLetters.size >= uniqueLettersInPoem.size) {
+      complete = true;
+      document.body.classList.add("complete");
+    }
+  }
+
+  function goToNextPage() {
+    if (navigating) return;
+    navigating = true;
+    document.body.style.opacity = "0";
+    setTimeout(() => {
+      window.location.href = NEXT_PAGE_URL;
+    }, 600);
+  }
+
+  captionEl.addEventListener("click", () => {
+    if (complete) goToNextPage();
+  });
+
+  // ------------------------------------------------------------------
+  // Idle fade-out: if nothing is pressed for a while, the poem
+  // slowly dissolves back to invisible and has to be typed again.
+  // ------------------------------------------------------------------
+
+  const IDLE_TIMEOUT_MS = 20000;
+  const FADE_DURATION_MS = 2500;
+
+  let lastActivityTime = Date.now();
+  let idleFaded = false;
+
+  function markActivity() {
+    lastActivityTime = Date.now();
+    idleFaded = false;
+  }
+
+  function fadeOutPoem() {
+    const spans = captionEl.querySelectorAll(".letter.revealed");
+    if (!spans.length) return;
+
+    spans.forEach(span => {
+      span.classList.add("slow-fade");
+      span.classList.remove("active");
+      span.style.color = ""; // let CSS (not an inline flash color) drive the fade
+    });
+
+    // wait a frame so the class swap is picked up before removing "revealed"
+    requestAnimationFrame(() => {
+      spans.forEach(span => span.classList.remove("revealed"));
+    });
+
+    // once the slow fade finishes, drop the modifier so the next
+    // reveal uses the normal quick transition again
+    setTimeout(() => {
+      spans.forEach(span => span.classList.remove("slow-fade"));
+    }, FADE_DURATION_MS + 100);
+  }
+
+  function checkIdle() {
+    if (idleFaded || complete) return;
+    if (Date.now() - lastActivityTime >= IDLE_TIMEOUT_MS) {
+      fadeOutPoem();
+      idleFaded = true;
+    }
+  }
+
+  setInterval(checkIdle, 1000);
+
   function triggerLetter(letter) {
     const entry = LETTER_MAP[letter];
     if (!entry) return;
+
+    markActivity();
 
     playChord(entry.freqs);
     flashKeyboardKey(letter);
@@ -165,6 +251,9 @@
       span.classList.add("active");
       span.classList.add("revealed"); // stays visible from now on
     });
+
+    revealedLetters.add(letter);
+    checkCompletion();
 
     if (activeTimeouts[letter]) clearTimeout(activeTimeouts[letter]);
     activeTimeouts[letter] = setTimeout(() => {
