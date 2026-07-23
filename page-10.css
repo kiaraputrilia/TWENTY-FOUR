@@ -116,12 +116,21 @@ body {
 
 }
 
-.target:hover {
+@media (hover: hover) {
 
-  transform: scale(2);
+  .target:hover {
+
+    transform: scale(2);
+
+  }
 
 }
 
+@media (hover: hover) {
+  .target:hover {
+    transform: translate(var(--tx), var(--ty)) scale(2);
+  }
+}
 
 /* =======================================
    CONTENT
